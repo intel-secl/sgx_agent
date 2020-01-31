@@ -46,6 +46,7 @@ type Configuration struct {
 	SGX_AgentPassword string
 	CMSBaseUrl        string
 	SGXHVSBaseUrl     string
+	BearerToken       string
 	SVSBaseURL        string
 	Subject           struct {
 		TLSCertCommonName string
@@ -108,6 +109,13 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.SGXHVSBaseUrl = sgxHVSBaseUrl
 	} else if conf.SGXHVSBaseUrl == "" {
 		log.Error("HVS_BASE_URL is not defined in environment")
+	}
+
+	bearerToken, err := c.GetenvString("BEARER_TOKEN", "SGX Agent BEARER_TOKEN")
+	if err == nil && bearerToken != "" {
+		conf.BearerToken = bearerToken
+	} else if conf.BearerToken == "" {
+		log.Error("BEARER_TOKEN is not defined in environment")
 	}
 
 	logLevel, err := c.GetenvString("SGX_AGENT_LOG_LEVEL", "SGX_AGENT Log Level")

@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	e "intel/isecl/lib/common/exec"
+	"intel/isecl/lib/common/middleware"
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/lib/common/validation"
 	"intel/isecl/sgx_agent/config"
@@ -166,7 +167,6 @@ func (a *App) configureLogs(isStdOut bool, isFileOut bool) {
 	commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, nil, ioWriterSecurity, false)
 
 	slog.Trace("sec log initiated")
-	log.Info("loggers setup finished: ", a.configuration().LogLevel)
 }
 
 func (a *App) Run(args []string) error {
@@ -291,6 +291,11 @@ func (a *App) Run(args []string) error {
 					Config:        a.configuration(),
 					ConsoleWriter: os.Stdout,
 				},
+				tasks.JWT{
+					Flags:         flags,
+					Config:        a.configuration(),
+					ConsoleWriter: os.Stdout,
+				},
 				tasks.CreateHost{
 					Flags:         flags,
 					Config:        a.configuration(),
@@ -310,7 +315,6 @@ func (a *App) Run(args []string) error {
 			return err
 		}
 	}
-	log.Info("run executed fully!!!!")
 	return nil
 }
 
@@ -327,8 +331,9 @@ func (a *App) startServer() error {
 	// Create Router, set routes
 	r := mux.NewRouter()
 	sr := r.PathPrefix("/sgx_agent/v1/").Subrouter()
-	///No authentication is needed right now hence commented.
-	//sr.Use(cmw.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, a.retrieveJWTSigningCerts))
+	var cacheTime, _ = time.ParseDuration(constants.JWTCertsCacheTime)
+
+	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, cacheTime))
 	func(setters ...func(*mux.Router)) {
 		for _, setter := range setters {
 			setter(sr)
@@ -532,5 +537,12 @@ func validateSetupArgs(cmd string, args []string) error {
 			return errors.New("app:validateCmdAndEnv() Please setup the arguments with env")
 		}
 	}
+	return nil
+}
+
+//To be implemented if JWT certificate is needed from any other services
+func fnGetJwtCerts() error {
+	log.Trace("resource/service:fnGetJwtCerts() Entering")
+	defer log.Trace("resource/service:fnGetJwtCerts() Leaving")
 	return nil
 }

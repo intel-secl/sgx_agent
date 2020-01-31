@@ -16,6 +16,7 @@ import (
 )
 
 var log = clog.GetDefaultLogger()
+var sLog = clog.GetSecurityLogger()
 
 type Server struct {
 	Flags         []string
