@@ -7,24 +7,30 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"flag"
 	"fmt"
-	e "intel/isecl/lib/common/exec"
-	"intel/isecl/lib/common/middleware"
-	"intel/isecl/lib/common/setup"
-	"intel/isecl/lib/common/validation"
+	"intel/isecl/lib/common/v2/crypt"
+	e "intel/isecl/lib/common/v2/exec"
+	"intel/isecl/lib/common/v2/middleware"
+	"intel/isecl/lib/common/v2/setup"
+	"intel/isecl/lib/common/v2/validation"
 	"intel/isecl/sgx_agent/config"
 	"intel/isecl/sgx_agent/constants"
 	"intel/isecl/sgx_agent/resource"
 	"intel/isecl/sgx_agent/tasks"
 	"intel/isecl/sgx_agent/version"
 	"io"
+	"io/ioutil"
 	stdlog "log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
+	"strconv"
+
 	//"path"
 	"strings"
 	"syscall"
@@ -34,9 +40,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
-	commLog "intel/isecl/lib/common/log"
-	commLogInt "intel/isecl/lib/common/log/setup"
-	"intel/isecl/lib/common/proc"
+	commLog "intel/isecl/lib/common/v2/log"
+	commLogMsg "intel/isecl/lib/common/v2/log/message"
+	commLogInt "intel/isecl/lib/common/v2/log/setup"
+	cos "intel/isecl/lib/common/v2/os"
+	"intel/isecl/lib/common/v2/proc"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -53,6 +61,7 @@ type App struct {
 	ConsoleWriter  io.Writer
 	LogWriter      io.Writer
 	HTTPLogWriter  io.Writer
+	SecLogWriter   io.Writer
 }
 
 func (a *App) printUsage() {
@@ -71,6 +80,29 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "    version          Show the version of sgx_agent")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Tasks for setup:")
+	fmt.Fprintln(w, "    all                       Runs all setup tasks")
+	fmt.Fprintln(w, "                              Required env variables:")
+	fmt.Fprintln(w, "                                  - get required env variables from all the setup tasks")
+	fmt.Fprintln(w, "                              Optional env variables:")
+	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
+	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
+	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>                                : for CMS API url")
+	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that SGX-Agent is talking to the right CMS instance")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    download_cert TLS     Generates Key pair and CSR, gets it signed from CMS")
+	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
+	fmt.Fprintln(w, "                          Required env variable if SGX_AGENT_NOSETUP=true or variable not set in config.yml:")
+	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that SGX-Agent is talking to the right CMS instance")
+	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>               : for CMS API url")
+	fmt.Fprintln(w, "                              - BEARER_TOKEN=<token>             : for authenticating with CMS")
+	fmt.Fprintln(w, "                              - SAN_LIST=<san>                   : list of hosts which needs access to service")
+	fmt.Fprintln(w, "                          Optional env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
+	fmt.Fprintln(w, "                              - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
 	fmt.Fprintln(w, "")
 }
 
@@ -150,23 +182,26 @@ func (a *App) runDirPath() string {
 	return constants.RunDirPath
 }
 
-var secLogFile *os.File
-var defaultLogFile *os.File
+func (a *App) configureLogs(stdOut, logFile bool) {
 
-func (a *App) configureLogs(isStdOut bool, isFileOut bool) {
 	var ioWriterDefault io.Writer
-	ioWriterDefault = defaultLogFile
-	if isStdOut && isFileOut {
-		ioWriterDefault = io.MultiWriter(os.Stdout, defaultLogFile)
-	} else if isStdOut && !isFileOut {
-		ioWriterDefault = os.Stdout
+	ioWriterDefault = a.LogWriter
+
+	if stdOut {
+		if logFile {
+			ioWriterDefault = io.MultiWriter(os.Stdout, a.LogWriter)
+		} else {
+			ioWriterDefault = os.Stdout
+		}
 	}
 
-	ioWriterSecurity := io.MultiWriter(ioWriterDefault, secLogFile)
-	commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, nil, ioWriterDefault, false)
-	commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, nil, ioWriterSecurity, false)
+	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.SecLogWriter)
+	f := commLog.LogFormatter{MaxLength: a.configuration().LogMaxLength}
+	commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, &f, ioWriterDefault, false)
+	commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, &f, ioWriterSecurity, false)
 
-	slog.Trace("sec log initiated")
+	slog.Info(commLogMsg.LogInit)
+	log.Info(commLogMsg.LogInit)
 }
 
 func (a *App) Run(args []string) error {
@@ -174,52 +209,32 @@ func (a *App) Run(args []string) error {
 		a.printUsage()
 		os.Exit(1)
 	}
-	var err error
-	secLogFile, err = os.OpenFile(constants.SecurityLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
-	if err != nil {
-		log.Errorf("Could not open Security log file")
-	}
-	os.Chmod(constants.SecurityLogFile, 0664)
-	defaultLogFile, err = os.OpenFile(constants.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
-	if err != nil {
-		log.Errorf("Could not open default log file")
-	}
-	os.Chmod(constants.LogFile, 0664)
 
-	defer secLogFile.Close()
-	defer defaultLogFile.Close()
-
-	isStdOut := false
-	isSGXConsoleEnabled := os.Getenv("SGX_ENABLE_CONSOLE_LOG")
-	if isSGXConsoleEnabled == "true" {
-		isStdOut = true
-	}
-	a.configureLogs(isStdOut, true)
 	cmd := args[1]
 	switch cmd {
 	default:
 		a.printUsage()
-		return errors.New("Unrecognized command: " + args[1])
+		fmt.Fprintf(os.Stderr, "Unrecognized command: %s\n", args[1])
+		os.Exit(1)
 	case "run":
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		if err := a.startServer(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(10 * time.Millisecond)
 			return errors.Wrap(err, "app:Run() Error starting SGX service")
 		}
-	case "-help":
-		fallthrough
-	case "--h":
-		fallthrough
-	case "--help":
-		fallthrough
-	case "help":
+	case "-h", "--help":
 		a.printUsage()
+		return nil
 	case "start":
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.start()
 	case "stop":
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.stop()
 	case "status":
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.status()
 	case "uninstall":
 		var purge bool
@@ -229,16 +244,16 @@ func (a *App) Run(args []string) error {
 		log.Info("app:Run() Uninstalled SGX Service")
 		os.Exit(0)
 	case "version":
-		fmt.Fprintf(a.consoleWriter(), "SGX Service %s-%s\n", version.Version, version.GitHash)
+		fmt.Fprintf(a.consoleWriter(), "SGX Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
 	case "setup":
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		var context setup.Context
 		if len(args) <= 2 {
 			a.printUsage()
 			log.Error("app:Run() Invalid command")
 			os.Exit(1)
 		}
-		if args[2] != "admin" &&
-			args[2] != "download_ca_cert" &&
+		if args[2] != "download_ca_cert" &&
 			args[2] != "download_cert" &&
 			args[2] != "server" &&
 			args[2] != "all" {
@@ -264,34 +279,26 @@ func (a *App) Run(args []string) error {
 					Flags:         args,
 					CmsBaseURL:    a.Config.CMSBaseUrl,
 					CaCertDirPath: constants.TrustedCAsStoreDir,
+					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
 					ConsoleWriter: os.Stdout,
 				},
 				setup.Download_Cert{
 					Flags:              args,
 					CmsBaseURL:         a.Config.CMSBaseUrl,
-					KeyFile:            constants.TLSKeyPath,
-					CertFile:           constants.TLSCertPath,
+					KeyFile:            a.Config.TLSKeyFile,
+					CertFile:           a.Config.TLSCertFile,
 					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
 					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
 					Subject: pkix.Name{
-						Country:      []string{a.Config.Subject.Country},
-						Organization: []string{a.Config.Subject.Organization},
-						Locality:     []string{a.Config.Subject.Locality},
-						Province:     []string{a.Config.Subject.Province},
 						CommonName:   a.Config.Subject.TLSCertCommonName,
 					},
-					SanList:       constants.DefaultTlsSan,
+					SanList:       a.Config.CertSANList,
 					CertType:      "TLS",
 					CaCertsDir:    constants.TrustedCAsStoreDir,
 					BearerToken:   "",
 					ConsoleWriter: os.Stdout,
 				},
 				tasks.Server{
-					Flags:         flags,
-					Config:        a.configuration(),
-					ConsoleWriter: os.Stdout,
-				},
-				tasks.JWT{
 					Flags:         flags,
 					Config:        a.configuration(),
 					ConsoleWriter: os.Stdout,
@@ -304,6 +311,7 @@ func (a *App) Run(args []string) error {
 			},
 			AskInput: false,
 		}
+
 		if task == "all" {
 			err = setupRunner.RunTasks()
 		} else {
@@ -311,8 +319,41 @@ func (a *App) Run(args []string) error {
 		}
 		if err != nil {
 			log.WithError(err).Error("Error running setup")
-			fmt.Println("Error running setup: ", err)
+			fmt.Fprintf(os.Stderr, "Error running setup: %s\n", err)
 			return err
+		}
+
+		sgxAgentUser, err := user.Lookup(constants.SGXAgentUserName)
+		if err != nil {
+			return errors.Wrapf(err,"Could not find user '%s'", constants.SGXAgentUserName)
+		}
+
+		uid, err := strconv.Atoi(sgxAgentUser.Uid)
+		if err != nil {
+			return errors.Wrapf(err,"Could not parse sgx-agent user uid '%s'", sgxAgentUser.Uid)
+		}
+
+		gid, err := strconv.Atoi(sgxAgentUser.Gid)
+		if err != nil {
+			return errors.Wrapf(err,"Could not parse sgx-agent user gid '%s'", sgxAgentUser.Gid)
+		}
+
+		//Change the file ownership to sgx-agent user
+
+		err = cos.ChownR(constants.ConfigDir, uid, gid)
+		if err != nil {
+			return errors.Wrap(err,"Error while changing file ownership")
+		}
+		if task == "download_cert" {
+			err = os.Chown(a.Config.TLSKeyFile, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Key file")
+			}
+
+			err = os.Chown(a.Config.TLSCertFile, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Cert file")
+			}
 		}
 	}
 	return nil
@@ -323,6 +364,8 @@ func (a *App) startServer() error {
 	defer log.Info("app:startServer() Leaving")
 
 	c := a.configuration()
+	log.Info("Starting SGX Agent server")
+
 	err := resource.Extract_SGXPlatformValues()
 	if err != nil {
 		log.WithError(err).Error("error came while installing sgx agent. Starting anyways.....")
@@ -330,9 +373,10 @@ func (a *App) startServer() error {
 
 	// Create Router, set routes
 	r := mux.NewRouter()
+	r.SkipClean(true)
+
 	sr := r.PathPrefix("/sgx_agent/v1/").Subrouter()
 	var cacheTime, _ = time.ParseDuration(constants.JWTCertsCacheTime)
-
 	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, cacheTime))
 	func(setters ...func(*mux.Router)) {
 		for _, setter := range setters {
@@ -356,25 +400,30 @@ func (a *App) startServer() error {
 		Handler:   handlers.RecoveryHandler(handlers.RecoveryLogger(httpLog), handlers.PrintRecoveryStack(true))(handlers.CombinedLoggingHandler(a.httpLogWriter(), r)),
 		ErrorLog:  httpLog,
 		TLSConfig: tlsconfig,
+		ReadTimeout:       c.ReadTimeout,
+		ReadHeaderTimeout: c.ReadHeaderTimeout,
+		WriteTimeout:      c.WriteTimeout,
+		IdleTimeout:       c.IdleTimeout,
+		MaxHeaderBytes:    c.MaxHeaderBytes,
 	}
 
-	proc.AddTask()
+	proc.AddTask(false)
 	go func() {
 		defer proc.TaskDone()
-		proc.AddTask()
+		proc.AddTask(false)
 
 		// dispatch web server go routine
 		go func() {
 			defer proc.TaskDone()
-			tlsCert := constants.TLSCertPath
-			tlsKey := constants.TLSKeyPath
+			tlsCert := config.Global().TLSCertFile
+			tlsKey := config.Global().TLSKeyFile
 			if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
 				proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
 				proc.EndProcess()
 			}
 		}()
 
-		fmt.Fprintln(a.consoleWriter(), "SGX agent Service is running")
+		slog.Info(commLogMsg.ServiceStart)
 		<-proc.QuitChan
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -386,6 +435,7 @@ func (a *App) startServer() error {
 	}()
 
 	proc.WaitForQuitAndCleanup(10 * time.Second)
+	slog.Info(commLogMsg.ServiceStop)
 	return nil
 }
 
@@ -396,7 +446,7 @@ func (a *App) start() error {
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl start sgx_agent"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return errors.Wrap(err, "app:start() Could not locate systemctl to start application service")
+		return err
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "start", "sgx_agent"}, os.Environ())
 }
@@ -408,7 +458,7 @@ func (a *App) stop() error {
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl stop sgx_agent"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return errors.Wrap(err, "app:stop() Could not locate systemctl to stop application service")
+		return err
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "stop", "sgx_agent"}, os.Environ())
 }
@@ -420,7 +470,7 @@ func (a *App) status() error {
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl status sgx_agent"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return errors.Wrap(err, "app:status() Could not locate systemctl to check status of application service")
+		return err
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "status", "sgx_agent"}, os.Environ())
 }
@@ -493,7 +543,7 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 	if err != nil && missing != nil {
 		for _, m := range missing {
 			if cmd_f := flags.Lookup(env_names_cmd_opts[m]); cmd_f == nil {
-				return errors.Wrap(err, "app:validateCmdAndEnv() Insufficient arguments")
+				return errors.New("app:validateCmdAndEnv() Insufficient arguments")
 			}
 		}
 	}
@@ -504,8 +554,6 @@ func validateSetupArgs(cmd string, args []string) error {
 	log.Trace("app:validateSetupArgs() Entering")
 	defer log.Trace("app:validateSetupArgs() Leaving")
 
-	var fs *flag.FlagSet
-
 	switch cmd {
 	default:
 		return errors.New("Unknown command")
@@ -513,21 +561,8 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_ca_cert":
 		return nil
 
-	case "admin":
-		env_names_cmd_opts := map[string]string{
-			"SGX_AGENT_ADMIN_USERNAME": "user",
-			"SGX_AGENT_ADMIN_PASSWORD": "pass",
-		}
-
-		fs = flag.NewFlagSet("admin", flag.ContinueOnError)
-		fs.String("user", "", "Username for admin authentication")
-		fs.String("pass", "", "Password for admin authentication")
-
-		err := fs.Parse(args)
-		if err != nil {
-			return fmt.Errorf("Fail to parse arguments: %s", err.Error())
-		}
-		return validateCmdAndEnv(env_names_cmd_opts, fs)
+	case "download_cert":
+		return nil
 
 	case "server":
 		return nil
@@ -540,9 +575,54 @@ func validateSetupArgs(cmd string, args []string) error {
 	return nil
 }
 
-//To be implemented if JWT certificate is needed from any other services
 func fnGetJwtCerts() error {
 	log.Trace("resource/service:fnGetJwtCerts() Entering")
 	defer log.Trace("resource/service:fnGetJwtCerts() Leaving")
+
+	conf := config.Global()
+
+	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
+		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
+	}
+	url := conf.AuthServiceUrl + "noauth/jwt-certificates"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return errors.Wrap(err, "Could not create http request")
+	}
+	req.Header.Add("accept", "application/x-pem-file")
+	rootCaCertPems, err := cos.GetDirFileContents(constants.TrustedCAsStoreDir, "*.pem")
+	if err != nil {
+		return errors.Wrap(err, "Could not read root CA certificate")
+	}
+
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+	for _, rootCACert := range rootCaCertPems {
+		if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
+			return err
+		}
+	}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false,
+				RootCAs: rootCAs,
+			},
+		},
+	}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "Could not retrieve jwt certificate")
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	err = crypt.SavePemCertWithShortSha1FileName(body, constants.TrustedJWTSigningCertsDir)
+	if err != nil {
+		return errors.Wrap(err, "Could not store Certificate")
+	}
 	return nil
 }

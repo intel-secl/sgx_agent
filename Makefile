@@ -1,14 +1,14 @@
 SHELL := /bin/bash
 GITTAG := $(shell git describe --tags --abbrev=0 2> /dev/null)
 GITCOMMIT := $(shell git describe --always)
-GITCOMMITDATE := $(shell git log -1 --date=short --pretty=format:%cd)
 VERSION := $(or ${GITTAG}, v0.0.0)
+BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 .PHONY: sgx_agent installer all test clean
 
 sgx_agent:
-	env GOOS=linux go build -ldflags "-X intel/isecl/sgx_agent/version.Version=$(VERSION) -X intel/isecl/sgx_agent/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/scs/version.BuildDate=$(BUILDDATE) -X intel/isecl/sgx_agent/version.Version=$(VERSION) -X intel/isecl/sgx_agent/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
 
 installer: sgx_agent
 	mkdir -p out/installer

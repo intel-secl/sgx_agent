@@ -12,8 +12,11 @@ import (
 	"path"
 	"strconv"
 	"sync"
+	"time"
 
-	"intel/isecl/lib/common/setup"
+	errorLog "github.com/pkg/errors"
+	commLog "intel/isecl/lib/common/v2/log"
+	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/sgx_agent/constants"
 
 	log "github.com/sirupsen/logrus"
@@ -25,12 +28,11 @@ import (
 type Configuration struct {
 	configFile string
 	Port       int
+	CmsTlsCertDigest string
+	LogMaxLength	 int
+	LogEnableStdout  bool
 	LogLevel   log.Level
 
-	Organization       string
-	Locality           string
-	Province           string
-	Country            string
 	KeyAlgorithm       string
 	KeyAlgorithmLength int
 	CACertValidity     int
@@ -45,17 +47,21 @@ type Configuration struct {
 	SGX_AgentUserName string
 	SGX_AgentPassword string
 	CMSBaseUrl        string
+	AuthServiceUrl    string
 	SGXHVSBaseUrl     string
 	BearerToken       string
 	SVSBaseURL        string
 	Subject           struct {
 		TLSCertCommonName string
-		JWTCertCommonName string
-		Organization      string
-		Country           string
-		Province          string
-		Locality          string
 	}
+	TLSKeyFile        string
+	TLSCertFile       string
+	CertSANList       string
+	ReadTimeout       time.Duration
+	ReadHeaderTimeout time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	MaxHeaderBytes    int
 
 	TrustedRootCA *x509.Certificate
 	ProxyUrl      string
@@ -97,11 +103,28 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		log.Error("SGX_AGENT_PASSWORD is not defined in environment")
 	}
 
+	tlsCertDigest, err := c.GetenvString(constants.CmsTlsCertDigestEnv, "TLS certificate digest")
+	if err == nil && tlsCertDigest != "" {
+		conf.CmsTlsCertDigest = tlsCertDigest
+	} else if conf.CmsTlsCertDigest == "" {
+		commLog.GetDefaultLogger().Error("CMS_TLS_CERT_SHA384 is not defined in environment")
+		return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "SaveConfiguration() ENV variable not found")
+	}
+
 	cmsBaseUrl, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
 	if err == nil && cmsBaseUrl != "" {
 		conf.CMSBaseUrl = cmsBaseUrl
 	} else if conf.CMSBaseUrl == "" {
-		log.Error("CMS_BASE_URL is not defined in environment")
+		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
+		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
+	}
+
+	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
+	if err == nil && aasApiUrl != "" {
+		conf.AuthServiceUrl = aasApiUrl
+	} else if conf.AuthServiceUrl == "" {
+		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
+		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
 	sgxHVSBaseUrl, err := c.GetenvString("HVS_BASE_URL", "HVS Base URL")
@@ -138,12 +161,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.ProxyEnable == "" {
 		conf.ProxyEnable = strconv.FormatBool(constants.ProxyDisable)
 	}
-	jwtCertCN, err := c.GetenvString("SGX_AGENT_JWT_CERT_CN", "SGX_AGENT JWT Certificate Common Name")
-	if err == nil && jwtCertCN != "" {
-		conf.Subject.JWTCertCommonName = jwtCertCN
-	} else if conf.Subject.JWTCertCommonName == "" {
-		conf.Subject.JWTCertCommonName = constants.DefaultSGX_AgentJwtCn
-	}
 
 	tlsCertCN, err := c.GetenvString("SGX_AGENT_TLS_CERT_CN", "SGX_AGENT TLS Certificate Common Name")
 	if err == nil && tlsCertCN != "" {
@@ -152,31 +169,25 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.Subject.TLSCertCommonName = constants.DefaultSGX_AgentTlsCn
 	}
 
-	certOrg, err := c.GetenvString("SGX_AGENT_CERT_ORG", "SGX_AGENT Certificate Organization")
-	if err == nil && certOrg != "" {
-		conf.Subject.Organization = certOrg
-	} else if conf.Subject.Organization == "" {
-		conf.Subject.Organization = constants.DefaultSGX_AgentCertOrganization
+	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
+	if err == nil && tlsKeyPath != "" {
+		conf.TLSKeyFile = tlsKeyPath
+	} else if conf.TLSKeyFile == "" {
+		conf.TLSKeyFile = constants.DefaultTLSKeyFile
 	}
 
-	certCountry, err := c.GetenvString("SGX_AGENT_CERT_COUNTRY", "SGX_AGENT Certificate Country")
-	if err == nil && certCountry != "" {
-		conf.Subject.Country = certCountry
-	} else if conf.Subject.Country == "" {
-		conf.Subject.Country = constants.DefaultSGX_AgentCertCountry
+	tlsCertPath, err := c.GetenvString("CERT_PATH", "Path of file/directory where TLS certificate needs to be stored")
+	if err == nil && tlsCertPath != "" {
+		conf.TLSCertFile = tlsCertPath
+	} else if conf.TLSCertFile == "" {
+		conf.TLSCertFile = constants.DefaultTLSCertFile
 	}
 
-	certProvince, err := c.GetenvString("SGX_AGENT_CERT_PROVINCE", "SGX_AGENT Certificate Province")
-	if err == nil && certProvince != "" {
-		conf.Subject.Province = certProvince
-	} else if err != nil || conf.Subject.Province == "" {
-		conf.Subject.Province = constants.DefaultSGX_AgentCertProvince
-	}
-	certLocality, err := c.GetenvString("SGX_AGENT_CERT_LOCALITY", "SGX_AGENT Certificate Locality")
-	if err == nil && certLocality != "" {
-		conf.Subject.Locality = certLocality
-	} else if conf.Subject.Locality == "" {
-		conf.Subject.Locality = constants.DefaultSGX_AgentCertLocality
+	sanList, err := c.GetenvString("SAN_LIST", "SAN list for TLS")
+	if err == nil && sanList != "" {
+		conf.CertSANList = sanList
+	} else if conf.CertSANList == "" {
+		conf.CertSANList = constants.DefaultTlsSan
 	}
 
 	log.Info("logLevel: ", conf.LogLevel)
@@ -220,10 +231,9 @@ func Load(path string) *Configuration {
 		yaml.NewDecoder(file).Decode(&c)
 	} else {
 		// file doesnt exist, create a new blank one
-		c.LogLevel = log.ErrorLevel
+		c.LogLevel = log.InfoLevel
 	}
 
-	c.LogLevel = log.InfoLevel
 	c.configFile = path
 	return &c
 }
