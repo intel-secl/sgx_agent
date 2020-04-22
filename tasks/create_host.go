@@ -18,6 +18,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -87,10 +88,16 @@ func (task CreateHost) Run(c setup.Context) error {
 		return errors.Wrap(err, "tasks/create_hosts:Run() Could not marshal data from SGX TA")
 	}
 
+	tokenFromEnv, err := c.GetenvSecret("BEARER_TOKEN", "bearer token")
+	if tokenFromEnv == "" || err != nil {
+		fmt.Fprintln(os.Stderr, "BEARER_TOKEN is not defined in environment")
+		return errors.Wrap(err, "tasks/create_hosts:Run() BEARER_TOKEN is not defined in environment file")
+	}
+
 	url := fmt.Sprintf("%s/hosts", HVSUrl)
 	request, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+task.Config.BearerToken)
+	request.Header.Set("Authorization", "Bearer "+ tokenFromEnv)
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 	if err != nil {
 		log.WithError(err).Error("vsclient/vsclient_factory:createHttpClient() Error while creating http client")
