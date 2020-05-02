@@ -30,21 +30,21 @@ func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File
 	}
 	os.Chmod(constants.SecurityLogFile, 0664)
 
-	scsUser, err := user.Lookup(constants.SGXAgentUserName)
+	sgentUser, err := user.Lookup(constants.SGXAgentUserName)
 	if err != nil {
 		log.Errorf("Could not find user '%s'", constants.SGXAgentUserName)
 		return nil, nil, nil, err
 	}
 
-	uid, err := strconv.Atoi(scsUser.Uid)
+	uid, err := strconv.Atoi(sgentUser.Uid)
 	if err != nil {
-		log.Errorf("Could not parse scs user uid '%s'", scsUser.Uid)
+		log.Errorf("Could not parse sgentUser user uid '%s'", sgentUser.Uid)
 		return nil, nil, nil, err
 	}
 
-	gid, err := strconv.Atoi(scsUser.Gid)
+	gid, err := strconv.Atoi(sgentUser.Gid)
 	if err != nil {
-		log.Errorf("Could not parse scs user gid '%s'", scsUser.Gid)
+		log.Errorf("Could not parse sgentUser gid '%s'", sgentUser.Gid)
 		return nil, nil, nil, err
 	}
 
@@ -69,9 +69,6 @@ func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File
 }
 
 func main() {
-	log.Info("main:main() Entering")
-	defer log.Info("main:main() Leaving")
-
 	l, h, s, err := openLogFiles()
 	var app *App
 	if err != nil {
@@ -83,11 +80,12 @@ func main() {
 		defer h.Close()
 		defer s.Close()
 		app = &App{
-			LogWriter: l,
+			LogWriter:     l,
 			HTTPLogWriter: h,
-			SecLogWriter: s,
+			SecLogWriter:  s,
 		}
 	}
+
 	err = app.Run(os.Args)
 	if err != nil {
 		os.Exit(1)

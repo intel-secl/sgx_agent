@@ -28,7 +28,7 @@ type CreateHost struct {
 	Flags         []string
 	Config        *config.Configuration
 	ConsoleWriter io.Writer
-	ip            string
+	hostName      string
 }
 
 type Host struct {
@@ -56,16 +56,26 @@ func (task CreateHost) Run(c setup.Context) error {
 	var err error
 	var host_info, host_info1 Host
 
-	task.ip, err = utils.GetLocalIpAsString()
+	task.hostName, err = utils.GetLocalHostname()
 	if err != nil {
-		return errors.Wrap(err, "tasks/create_host:Run() Error while getting Local IP address")
+		return errors.Wrap(err, "tasks/create_host:Run() Error while getting Local hostName address")
 	}
+
+	fmt.Fprintln(task.ConsoleWriter, "Current Hostname for agent is: ", task.hostName, ". Do you want to continue with this(Y/N)??")
+	var arg, name string
+	fmt.Scanln(&arg)
+	if arg == "N" {
+		fmt.Fprintln(task.ConsoleWriter, "Please enter (hostname/IP address) you want to give")
+		fmt.Scanln(&name)
+		task.hostName = name
+	}
+	fmt.Fprintln(task.ConsoleWriter, "sgx_agent will be registered with hostname: ", task.hostName)
 
 	connectionString, err := utils.GetConnectionString(task.Config)
 	if err != nil {
 		return err
 	}
-	host_info.HostName = task.ip
+	host_info.HostName = task.hostName
 	host_info.Description = "demo"
 	host_info.ConnectionString = connectionString + "/host"
 	host_info.Flag = true
@@ -97,7 +107,7 @@ func (task CreateHost) Run(c setup.Context) error {
 	url := fmt.Sprintf("%s/hosts", HVSUrl)
 	request, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+ tokenFromEnv)
+	request.Header.Set("Authorization", "Bearer "+tokenFromEnv)
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 	if err != nil {
 		log.WithError(err).Error("vsclient/vsclient_factory:createHttpClient() Error while creating http client")

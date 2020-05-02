@@ -26,8 +26,8 @@ type Server struct {
 }
 
 func (s Server) Run(c setup.Context) error {
-	log.Info("tasks/server:Run() Entering")
-	defer log.Info("tasks/server:Run() Leaving")
+	log.Trace("tasks/server:Run() Entering")
+	defer log.Trace("tasks/server:Run() Leaving")
 
 	fmt.Fprintln(s.ConsoleWriter, "Running server setup...")
 	defaultPort, err := c.GetenvInt("SGX_PORT", "sgx serification service http port")

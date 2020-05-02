@@ -1,0 +1,44 @@
+This diff is created as for now PCKRetrievalTool is interactive and asks for PCCS password. Hence that part is commented to make sure PCCS connection doesn't occur.
+diff --git a/tools/PCKRetrievalTool/App/App.cpp b/tools/PCKRetrievalTool/App/App.cpp
+index e4cc819..9fc5ca2 100644
+--- a/tools/PCKRetrievalTool/App/App.cpp
++++ b/tools/PCKRetrievalTool/App/App.cpp
+@@ -371,14 +371,14 @@ int main(int argc, const char* argv[])
+                 printf("Error: the input password is not correct.\n");
+                 delivery_status = DELIVERY_FAIL;
+             }
+-            else if (POST_NETWORK_ERROR == ret_status) {
++            /*else if (POST_NETWORK_ERROR == ret_status) {
+                 printf("Error: network error, please check the network setting or whether the cache server is down.\n");
+                 delivery_status = DELIVERY_FAIL;
+             }
+             else {
+                 printf("Error: unexpected error happend during sending data to cache server.\n");
+                 delivery_status = DELIVERY_FAIL;
+-            }
++            }*/
+         }
+     }while (0);
+     
+diff --git a/tools/PCKRetrievalTool/App/linux/network_wrapper.cpp b/tools/PCKRetrievalTool/App/linux/network_wrapper.cpp
+index f480066..ce32e1a 100644
+--- a/tools/PCKRetrievalTool/App/linux/network_wrapper.cpp
++++ b/tools/PCKRetrievalTool/App/linux/network_wrapper.cpp
+@@ -364,7 +364,7 @@ network_post_error_t network_https_post(const uint8_t* buffer, const uint32_t bu
+         struct curl_slist *slist = NULL;
+         slist = curl_slist_append(slist, "Content-Type: application/json");
+ 
+-        if (user_token.empty()) {
++        /*if (user_token.empty()) {
+             printf("\n Please input the pccs password, and use \"Enter key\" to end\n");
+             int usless_ret = system("stty -echo");
+             user_token = "user-token: ";
+@@ -376,7 +376,7 @@ network_post_error_t network_https_post(const uint8_t* buffer, const uint32_t bu
+             (void)(usless_ret);
+         } else {
+             user_token = "user-token: " + user_token;
+-        }
++        }*/
+ 
+         slist = curl_slist_append(slist, user_token.c_str());
+         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);

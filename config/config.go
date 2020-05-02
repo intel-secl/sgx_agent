@@ -26,12 +26,12 @@ import (
 // Configuration is the global configuration struct that is marshalled/unmarshaled to a persisted yaml file
 // Probably should embed a config generic struct
 type Configuration struct {
-	configFile string
-	Port       int
+	configFile       string
+	Port             int
 	CmsTlsCertDigest string
-	LogMaxLength	 int
+	LogMaxLength     int
 	LogEnableStdout  bool
-	LogLevel   log.Level
+	LogLevel         log.Level
 
 	KeyAlgorithm       string
 	KeyAlgorithmLength int
