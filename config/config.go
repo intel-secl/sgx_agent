@@ -23,6 +23,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var slog = commLog.GetSecurityLogger()
+
 // Configuration is the global configuration struct that is marshalled/unmarshaled to a persisted yaml file
 // Probably should embed a config generic struct
 type Configuration struct {
@@ -182,7 +184,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CertSANList = constants.DefaultTlsSan
 	}
 
-	log.Info("logLevel: ", conf.LogLevel)
+	slog.Infof("config/config:SaveConfiguration() Log level set %s\n", conf.LogLevel)
 	return conf.Save()
 }
 

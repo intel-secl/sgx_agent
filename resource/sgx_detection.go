@@ -69,14 +69,14 @@ func Extract_SGXPlatformValues() error {
 	data1.Sgx_supported = sgxExtensionsEnabled
 	sgxEnabled, err := isSGXEnabled()
 	if err != nil {
-		log.Debug("SGXEnabled can't be determined", err)
+		log.WithError(err).Info("SGXEnabled can't be determined")
 		return err
 	}
 	data1.Sgx_enabled = sgxEnabled
 	flcEnabled, err := isFLCEnabled()
 	data1.Flc_enabled = flcEnabled
 	if err != nil {
-		log.Error("error came in isFLCEnabled()")
+		log.WithError(err).Info("isFLCEnabled can't be determined")
 		return err
 	}
 	EPCStartAddress, EPCSize := epcMemoryDetails()
@@ -88,33 +88,33 @@ func Extract_SGXPlatformValues() error {
 	data1.maxEnclaveSizeNot64 = maxEnclaveSizeNot64Val
 	data1.maxEnclaveSize64 = maxEnclaveSize64Val
 
-	log.Info("**********************************SGX SPECIFIC VALUES*****************************")
-	log.Info("sgx supported: ", sgxExtensionsEnabled)
-	log.Info("sgx enabled: ", sgxEnabled)
-	log.Info("flc enabled: ", flcEnabled)
-	log.Info("Start Address: ", EPCStartAddress)
-	log.Info("Size: ", EPCSize)
-	log.Info("SGXLevel Supported: ", sgxValue)
-	log.Info("Enclave size when CPU is not in 64 bit mode: ", maxEnclaveSizeNot64Val)
-	log.Info("Enclave size when CPU is in 64 bit mode: ", maxEnclaveSize64Val)
+	log.Debug("**********************************SGX SPECIFIC VALUES*****************************")
+	log.Debug("sgx supported: ", sgxExtensionsEnabled)
+	log.Debug("sgx enabled: ", sgxEnabled)
+	log.Debug("flc enabled: ", flcEnabled)
+	log.Debug("Start Address: ", EPCStartAddress)
+	log.Debug("Size: ", EPCSize)
+	log.Debug("SGXLevel Supported: ", sgxValue)
+	log.Debug("Enclave size when CPU is not in 64 bit mode: ", maxEnclaveSizeNot64Val)
+	log.Debug("Enclave size when CPU is in 64 bit mode: ", maxEnclaveSize64Val)
 	if sgxEnabled && flcEnabled {
 		log.Info("sgx and flc is enabled. Hence running PCKIDRetrieval tool")
 		fileContents, err := writePCKDetails()
 		if err == nil {
 			///Parse the string as retrieved.
 			s := strings.Split(fileContents, ",")
-			log.Info("EncryptedPPID: ", s[0])
-			log.Info("PCE_ID: ", s[1])
-			log.Info("CPUSVN: ", s[2])
-			log.Info("PCE ISVSVN: ", s[3])
-			log.Info("QE_ID: ", s[4])
+			log.Debug("EncryptedPPID: ", s[0])
+			log.Debug("PCE_ID: ", s[1])
+			log.Debug("CPUSVN: ", s[2])
+			log.Debug("PCE ISVSVN: ", s[3])
+			log.Debug("QE_ID: ", s[4])
 			data2.Encrypted_PPID = s[0]
 			data2.Pce_id = s[1]
 			data2.Cpu_svn = s[2]
 			data2.Pce_svn = s[3]
 			data2.Qe_id = s[4]
 		} else {
-			log.Error("fileContents not retrieved from PCKIDRetrivalTool")
+			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
 			return err
 		}
 	} else {
@@ -172,12 +172,12 @@ func isCPUSupportsSGXExtensions() bool {
 
 func epcMemoryDetails() (string, string) {
 	eax, ebx, ecx, edx := cpuid_low(18, 2)
-	log.Infof("eax, ebx, ecx, edx: %08x-%08x-%08x-%08x", eax, ebx, ecx, edx)
+	log.Debugf("eax, ebx, ecx, edx: %08x-%08x-%08x-%08x", eax, ebx, ecx, edx)
 	//eax(31, 12) + ebx(51, 32)
 	range1 := (((1 << 20) - 1) & (eax >> (13 - 1)))
 	range2 := ((1 << 20) - 1) & (ebx >> (32 - 1))
 	startAddress := ((range2 & 0xff) | range1) << 12
-	log.Infof("startaddress: %08x", startAddress)
+	log.Debugf("startaddress: %08x", startAddress)
 
 	//ecx(31, 12) + edx(51, 32)
 	range1 = ((1 << 20) - 1) & (ecx >> (13 - 1))
@@ -185,7 +185,7 @@ func epcMemoryDetails() (string, string) {
 	size := ((range2 & 0xff) | range1) << 12
 	sizeINMB := convertToMB(size)
 	startAddressinHex := "0x" + fmt.Sprintf("%08x", startAddress)
-	log.Infof("size in decimal %20d  and mb %16q: ", size, sizeINMB)
+	log.Debugf("size in decimal %20d  and mb %16q: ", size, sizeINMB)
 	return startAddressinHex, sizeINMB
 }
 
@@ -198,7 +198,7 @@ func isSGXInstructionSetSuported() int {
 			sgx_value = 2
 		}
 	} else {
-		log.Info("SGX instrusction set 1 or 2 neither is supported.")
+		log.Debug("SGX instruction set 1 and 2 are not supported.")
 	}
 	return sgx_value
 }
@@ -228,9 +228,9 @@ func writePCKDetails() (string, error) {
 		fileContents = string(dat[:])
 	} else if os.IsNotExist(err) {
 		// path/to/whatever does *not* exist
-		log.Info("File not found")
+		log.Warning("File not found")
 	} else {
-		log.Info("some issue in reading file")
+		log.Warning("some issue in reading file")
 	}
 	return fileContents, err
 }

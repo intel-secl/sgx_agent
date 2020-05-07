@@ -31,7 +31,6 @@ import (
 	"os/user"
 	"strconv"
 
-	//"path"
 	"strings"
 	"syscall"
 	"time"
@@ -276,11 +275,11 @@ func (a *App) Run(args []string) error {
 		setupRunner := &setup.Runner{
 			Tasks: []setup.Task{
 				setup.Download_Ca_Cert{
-					Flags:         args,
-					CmsBaseURL:    a.Config.CMSBaseUrl,
-					CaCertDirPath: constants.TrustedCAsStoreDir,
+					Flags:                args,
+					CmsBaseURL:           a.Config.CMSBaseUrl,
+					CaCertDirPath:        constants.TrustedCAsStoreDir,
 					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
-					ConsoleWriter: os.Stdout,
+					ConsoleWriter:        os.Stdout,
 				},
 				setup.Download_Cert{
 					Flags:              args,
@@ -290,7 +289,7 @@ func (a *App) Run(args []string) error {
 					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
 					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
 					Subject: pkix.Name{
-						CommonName:   a.Config.Subject.TLSCertCommonName,
+						CommonName: a.Config.Subject.TLSCertCommonName,
 					},
 					SanList:       a.Config.CertSANList,
 					CertType:      "TLS",
@@ -325,24 +324,24 @@ func (a *App) Run(args []string) error {
 
 		sgxAgentUser, err := user.Lookup(constants.SGXAgentUserName)
 		if err != nil {
-			return errors.Wrapf(err,"Could not find user '%s'", constants.SGXAgentUserName)
+			return errors.Wrapf(err, "Could not find user '%s'", constants.SGXAgentUserName)
 		}
 
 		uid, err := strconv.Atoi(sgxAgentUser.Uid)
 		if err != nil {
-			return errors.Wrapf(err,"Could not parse sgx-agent user uid '%s'", sgxAgentUser.Uid)
+			return errors.Wrapf(err, "Could not parse sgx-agent user uid '%s'", sgxAgentUser.Uid)
 		}
 
 		gid, err := strconv.Atoi(sgxAgentUser.Gid)
 		if err != nil {
-			return errors.Wrapf(err,"Could not parse sgx-agent user gid '%s'", sgxAgentUser.Gid)
+			return errors.Wrapf(err, "Could not parse sgx-agent user gid '%s'", sgxAgentUser.Gid)
 		}
 
 		//Change the file ownership to sgx-agent user
 
 		err = cos.ChownR(constants.ConfigDir, uid, gid)
 		if err != nil {
-			return errors.Wrap(err,"Error while changing file ownership")
+			return errors.Wrap(err, "Error while changing file ownership")
 		}
 		if task == "download_cert" {
 			err = os.Chown(a.Config.TLSKeyFile, uid, gid)
@@ -396,10 +395,10 @@ func (a *App) startServer() error {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	httpLog := stdlog.New(a.httpLogWriter(), "", 0)
 	h := &http.Server{
-		Addr:      fmt.Sprintf(":%d", c.Port),
-		Handler:   handlers.RecoveryHandler(handlers.RecoveryLogger(httpLog), handlers.PrintRecoveryStack(true))(handlers.CombinedLoggingHandler(a.httpLogWriter(), r)),
-		ErrorLog:  httpLog,
-		TLSConfig: tlsconfig,
+		Addr:              fmt.Sprintf(":%d", c.Port),
+		Handler:           handlers.RecoveryHandler(handlers.RecoveryLogger(httpLog), handlers.PrintRecoveryStack(true))(handlers.CombinedLoggingHandler(a.httpLogWriter(), r)),
+		ErrorLog:          httpLog,
+		TLSConfig:         tlsconfig,
 		ReadTimeout:       c.ReadTimeout,
 		ReadHeaderTimeout: c.ReadHeaderTimeout,
 		WriteTimeout:      c.WriteTimeout,
@@ -609,7 +608,7 @@ func fnGetJwtCerts() error {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: false,
-				RootCAs: rootCAs,
+				RootCAs:            rootCAs,
 			},
 		},
 	}

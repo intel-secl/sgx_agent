@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v2"
-	commLog "intel/isecl/lib/common/v2/log"
 	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/sgx_agent/config"
 	"intel/isecl/sgx_agent/constants"
@@ -21,8 +20,6 @@ import (
 	"os"
 	"strings"
 )
-
-var slog = commLog.GetSecurityLogger()
 
 type CreateHost struct {
 	Flags         []string
@@ -110,7 +107,7 @@ func (task CreateHost) Run(c setup.Context) error {
 	request.Header.Set("Authorization", "Bearer "+tokenFromEnv)
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 	if err != nil {
-		log.WithError(err).Error("vsclient/vsclient_factory:createHttpClient() Error while creating http client")
+		log.WithError(err).Error("sgx-hvsclient/sgx-hvsclient_factory:createHttpClient() Error while creating http client")
 		return nil
 	}
 
@@ -118,10 +115,9 @@ func (task CreateHost) Run(c setup.Context) error {
 		Transport: client.Transport,
 	}
 
-	slog.Info("CreateHost: Posting to url, json: ", url, string(jsonData))
-
 	response, err := httpClient.Do(request)
 	if err != nil {
+		sLog.WithError(err).Error("tasks/create_Host:Run() Error making request")
 		return errors.Wrapf(err, "tasks/create_Host:Run() Error making request %s", url)
 	}
 
@@ -136,7 +132,7 @@ func (task CreateHost) Run(c setup.Context) error {
 		return errors.Wrap(err, "tasks/create_Host: Run() Error reading response")
 	}
 
-	log.Info("CreateHost returned json: ", string(data))
+	log.Debugf("CreateHost returned json: -%v", string(data))
 
 	err = json.Unmarshal(data, &host_info1)
 	if err != nil {

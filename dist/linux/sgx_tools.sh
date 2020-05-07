@@ -27,7 +27,8 @@ install_sgx_components()
 								git apply $path/remove_pccs_connect.diff
 								make clean all || exit 1
 								make || exit 1
-								cp PCKIDRetrievalTool libdcap_quoteprov.so.1 enclave.signed.so /
+								cp libdcap_quoteprov.so.1 enclave.signed.so /
+								cp PCKIDRetrievalTool /usr/sbin/
 }
 
 install_sgx_components
