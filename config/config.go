@@ -7,7 +7,6 @@ package config
 import (
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"os"
 	"path"
 	"strconv"
@@ -135,12 +134,20 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		log.Error("HVS_BASE_URL is not defined in environment")
 	}
 
-	logLevel, err := c.GetenvString("SGX_AGENT_LOG_LEVEL", "SGX_AGENT Log Level")
+	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "No logging level specified, using default logging level: Error")
-		conf.LogLevel = log.ErrorLevel
+		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SGXAgentLogLevel)
+		conf.LogLevel = log.InfoLevel
+	} else {
+		llp, err := log.ParseLevel(logLevel)
+		if err != nil {
+			slog.Info("config/config:SaveConfiguration() Invalid log level specified in env, using default log level: Info")
+			conf.LogLevel = log.InfoLevel
+		} else {
+			conf.LogLevel = llp
+			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
+		}
 	}
-	conf.LogLevel, err = log.ParseLevel(logLevel)
 
 	proxyUrl, err := c.GetenvString("PROXY_URL", "Enviroment Proxy URL")
 	if err == nil && proxyUrl != "" {
@@ -183,8 +190,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.CertSANList == "" {
 		conf.CertSANList = constants.DefaultTlsSan
 	}
-
-	slog.Infof("config/config:SaveConfiguration() Log level set %s\n", conf.LogLevel)
+	
 	return conf.Save()
 }
 

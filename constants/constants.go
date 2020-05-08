@@ -27,6 +27,7 @@ const (
 	DefaultTLSKeyFile                = ConfigDir + "tls.key"
 	JWTCertsCacheTime                = "60m"
 	CmsTlsCertDigestEnv              = "CMS_TLS_CERT_SHA384"
+	SGXAgentLogLevel                 = "SGX_AGENT_LOGLEVEL"
 	DefaultReadTimeout               = 30 * time.Second
 	DefaultReadHeaderTimeout         = 10 * time.Second
 	DefaultWriteTimeout              = 10 * time.Second
