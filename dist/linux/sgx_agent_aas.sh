@@ -9,9 +9,9 @@ unset https_proxy
 unset http_proxy
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
-aas_hostname=${AAS_URL:-"https://10.105.168.27:8443"}
+aas_hostname=${AAS_URL:-"https://10.80.245.104:8444"}
 CURL_OPTS="-s -k"
-IPADDR="10.105.168.27,127.0.0.1,localhost"
+IPADDR="10.105.167.70,127.0.0.1,localhost"
 CN="SGX_AGENT TLS Certificate"
 
 mkdir -p /tmp/setup/sgx_agent
@@ -100,13 +100,8 @@ echo "$role_id"
 create_roles() {
 
 		local cms_role_id=$( create_user_roles "CMS" "CertApprover" "CN=$CN;SAN=$IPADDR;CERTTYPE=TLS" ) #get roleid
-		#local sah_rm_rid=$( create_user_roles "SAH" "RoleManager" ) #Get roleid
-		#local sah_um_rid=$( create_user_roles "SAH" "UserManager" ) #Get roleid
-		#local sah_urm_rid=$( create_user_roles "SAH" "UserRoleManager" ) #Get roleid
-		#local sah_cu_rid=$( create_user_roles "SAH" "CacheUpdater" ) #Get roleid
-		#local aas_role_id=$( create_user_roles "CMS" "CertApprover" "CN=SAH JWT Signing Certificate; SAN=127.0.0.1,localhost;CERTTYPE=JWT-Signing" )
-		#ROLE_ID_TO_MAP=`echo "\"$cms_role_id""\",\"""$sah_cu_rid""\",\"""$aas_role_id\""`
-		ROLE_ID_TO_MAP=`echo \"$cms_role_id\"`
+		local hvs_role_id=$( create_user_roles "SHVS" "HostRegistration" "" )
+		ROLE_ID_TO_MAP=`echo \"$cms_role_id\",\"$hvs_role_id\"`
 		echo $ROLE_ID_TO_MAP
 }
 

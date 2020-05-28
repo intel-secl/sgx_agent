@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/klauspost/cpuid"
+	"intel/isecl/sgx_agent/constants"
 	"intel/isecl/sgx_agent/utils"
 	"io/ioutil"
 	"net/http"
@@ -239,6 +240,12 @@ func GetPlatformInfo() errorHandlerFunc {
 	return func(httpWriter http.ResponseWriter, httpRequest *http.Request) error {
 		log.Trace("resource/sgx_detection:GetPlatformInfo() Entering")
 		defer log.Trace("resource/sgx_detection:GetPlatformInfo() Leaving")
+
+		err := AuthorizeEndpoint(httpRequest, constants.HostDataReaderGroupName, true)
+		if err != nil {
+			return err
+		}
+
 		if httpRequest.Header.Get("Accept") != "application/json" {
 			return &resourceError{Message: "Accept type not supported", StatusCode: http.StatusNotAcceptable}
 		}

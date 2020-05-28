@@ -39,6 +39,7 @@ const (
 	DefaultAuthDefendIntervalMins    = 5
 	DefaultAuthDefendLockoutMins     = 15
 	ServiceName                      = "SGX_AGENT"
+	HostDataReaderGroupName          = "HostDataReader"
 	SGXAgentUserName                 = "sgx_agent"
 	DefaultTokenDurationMins         = 240
 	DefaultHttpPort                  = 8445
