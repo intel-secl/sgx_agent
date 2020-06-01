@@ -37,11 +37,12 @@ type Paltform_Data struct {
 	Cpu_svn        string `json:"cpusvn"`
 	Pce_svn        string `json:"pcesvn"`
 	Qe_id          string `json:"qeid"`
+	Manifest       string `json:"Manifest"`
 }
 
 type PlatformResponse struct {
-	S1 SGX_Discovery_Data `json:"sgx-data"`
-	P1 Paltform_Data      `json:"sgx-platform-data"`
+	SGXData SGX_Discovery_Data `json:"sgx-data"`
+	PData   Paltform_Data      `json:"sgx-platform-data"`
 }
 
 var (
@@ -49,14 +50,14 @@ var (
 	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", "/opt/pckData"}
 )
 
-var data1 SGX_Discovery_Data
-var data2 Paltform_Data
+var sgxData SGX_Discovery_Data
+var platformData Paltform_Data
 
 func ProvidePlatformInfo(router *mux.Router) {
 	log.Trace("resource/sgx_detection:ProvidePlatformInfo() Entering")
 	defer log.Trace("resource/sgx_detection:ProvidePlatformInfo() Leaving")
 
-	router.Handle("/host", handlers.ContentTypeHandler(GetPlatformInfo(), "application/json")).Methods("GET")
+	router.Handle("/host", handlers.ContentTypeHandler(getPlatformInfo(), "application/json")).Methods("GET")
 }
 
 ///For any demo function
@@ -67,27 +68,27 @@ func Extract_SGXPlatformValues() error {
 		return nil
 	}
 	log.Info("SGX Extensions are enabled, hence proceeding further")
-	data1.Sgx_supported = sgxExtensionsEnabled
+	sgxData.Sgx_supported = sgxExtensionsEnabled
 	sgxEnabled, err := isSGXEnabled()
 	if err != nil {
 		log.WithError(err).Info("SGXEnabled can't be determined")
 		return err
 	}
-	data1.Sgx_enabled = sgxEnabled
+	sgxData.Sgx_enabled = sgxEnabled
 	flcEnabled, err := isFLCEnabled()
-	data1.Flc_enabled = flcEnabled
+	sgxData.Flc_enabled = flcEnabled
 	if err != nil {
 		log.WithError(err).Info("isFLCEnabled can't be determined")
 		return err
 	}
 	EPCStartAddress, EPCSize := epcMemoryDetails()
-	data1.Epc_startaddress = EPCStartAddress
-	data1.Epc_size = EPCSize
+	sgxData.Epc_startaddress = EPCStartAddress
+	sgxData.Epc_size = EPCSize
 	sgxValue := isSGXInstructionSetSuported()
-	data1.sgx_Level = sgxValue
+	sgxData.sgx_Level = sgxValue
 	var maxEnclaveSizeNot64Val, maxEnclaveSize64Val = maxEnclaveSize()
-	data1.maxEnclaveSizeNot64 = maxEnclaveSizeNot64Val
-	data1.maxEnclaveSize64 = maxEnclaveSize64Val
+	sgxData.maxEnclaveSizeNot64 = maxEnclaveSizeNot64Val
+	sgxData.maxEnclaveSize64 = maxEnclaveSize64Val
 
 	log.Debug("**********************************SGX SPECIFIC VALUES*****************************")
 	log.Debug("sgx supported: ", sgxExtensionsEnabled)
@@ -109,11 +110,13 @@ func Extract_SGXPlatformValues() error {
 			log.Debug("CPUSVN: ", s[2])
 			log.Debug("PCE ISVSVN: ", s[3])
 			log.Debug("QE_ID: ", s[4])
-			data2.Encrypted_PPID = s[0]
-			data2.Pce_id = s[1]
-			data2.Cpu_svn = s[2]
-			data2.Pce_svn = s[3]
-			data2.Qe_id = s[4]
+			log.Debug("Manifest: ", s[5])
+			platformData.Encrypted_PPID = s[0]
+			platformData.Pce_id = s[1]
+			platformData.Cpu_svn = s[2]
+			platformData.Pce_svn = s[3]
+			platformData.Qe_id = s[4]
+			platformData.Manifest = s[5]
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
 			return err
@@ -236,7 +239,7 @@ func writePCKDetails() (string, error) {
 	return fileContents, err
 }
 
-func GetPlatformInfo() errorHandlerFunc {
+func getPlatformInfo() errorHandlerFunc {
 	return func(httpWriter http.ResponseWriter, httpRequest *http.Request) error {
 		log.Trace("resource/sgx_detection:GetPlatformInfo() Entering")
 		defer log.Trace("resource/sgx_detection:GetPlatformInfo() Leaving")
@@ -250,7 +253,7 @@ func GetPlatformInfo() errorHandlerFunc {
 			return &resourceError{Message: "Accept type not supported", StatusCode: http.StatusNotAcceptable}
 		}
 
-		res := PlatformResponse{S1: data1, P1: data2}
+		res := PlatformResponse{SGXData: sgxData, PData: platformData}
 
 		httpWriter.Header().Set("Content-Type", "application/json")
 		httpWriter.WriteHeader(http.StatusOK)
@@ -261,7 +264,7 @@ func GetPlatformInfo() errorHandlerFunc {
 		}
 
 		httpWriter.Write(js)
-		log.Trace("resource/sgx_detection:GetPlatformInfo() Returned requested")
+		log.Trace("resource/sgx_detection:getPlatformInfo() Returned requested")
 		return nil
 	}
 }
