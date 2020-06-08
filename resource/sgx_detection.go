@@ -110,13 +110,17 @@ func Extract_SGXPlatformValues() error {
 			log.Debug("CPUSVN: ", s[2])
 			log.Debug("PCE ISVSVN: ", s[3])
 			log.Debug("QE_ID: ", s[4])
-			log.Debug("Manifest: ", s[5])
+
 			platformData.Encrypted_PPID = s[0]
 			platformData.Pce_id = s[1]
 			platformData.Cpu_svn = s[2]
 			platformData.Pce_svn = s[3]
 			platformData.Qe_id = s[4]
-			platformData.Manifest = s[5]
+			if len(s) > 5 {
+				log.Debug("Manifest exists. This is a multi-package platform")
+				platformData.Manifest = s[5]
+			}
+
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
 			return err
