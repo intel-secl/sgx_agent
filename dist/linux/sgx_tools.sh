@@ -2,7 +2,7 @@
 
 SGX_DCAP_REPO="https://github.com/intel/SGXDataCenterAttestationPrimitives.git"
 GIT_CLONE_PATH=/tmp/dataCenterAttestationPrimitives
-SGX_DCAP_RPM_VER=1.6.100.2-1
+SGX_DCAP_RPM_VER=1.6.90.2-1
 
 install_sgx_components()
 {
