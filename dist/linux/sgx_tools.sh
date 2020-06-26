@@ -40,8 +40,8 @@ install_sgx_components()
 	make || exit 1
 	make rpm_pkg
 	cd ./build/installer
-	rpm -e libsgx-ra-uefi-devel-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-uefi-${SGX_DCAP_RPM_VER}.el8.x86_64 sgx-ra-service-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-network-devel-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-network-${SGX_DCAP_RPM_VER}.el8.x86_64
-	rpm -ivh libsgx-ra-uefi-devel-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm libsgx-ra-network-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm libsgx-ra-uefi-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm sgx-ra-service-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm
+	rpm -e libsgx-ra-uefi-devel-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-uefi-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-network-devel-${SGX_DCAP_RPM_VER}.el8.x86_64 libsgx-ra-network-${SGX_DCAP_RPM_VER}.el8.x86_64
+	rpm -ivh libsgx-ra-uefi-devel-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm libsgx-ra-network-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm libsgx-ra-uefi-${SGX_DCAP_RPM_VER}.el8.x86_64.rpm
 
 	#Build PCKRetrievalTool
 	cd $GIT_CLONE_PATH/tools/PCKRetrievalTool
