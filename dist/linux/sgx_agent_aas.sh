@@ -11,7 +11,7 @@ unset http_proxy
 #Get the value of AAS IP address and port. Default vlue is also provided.
 aas_hostname=${AAS_URL:-"https://10.80.245.104:8444"}
 CURL_OPTS="-s -k"
-IPADDR="10.105.167.70,127.0.0.1,localhost"
+IPADDR="10.105.167.70"
 CN="SGX_AGENT TLS Certificate"
 
 mkdir -p /tmp/setup/sgx_agent

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"os"
 	"path"
-	"strconv"
 	"sync"
 	"time"
 
@@ -64,8 +63,6 @@ type Configuration struct {
 	MaxHeaderBytes    int
 
 	TrustedRootCA *x509.Certificate
-	ProxyUrl      string
-	ProxyEnable   string
 }
 
 var mu sync.Mutex
@@ -147,20 +144,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 			conf.LogLevel = llp
 			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
 		}
-	}
-
-	proxyUrl, err := c.GetenvString("PROXY_URL", "Enviroment Proxy URL")
-	if err == nil && proxyUrl != "" {
-		conf.ProxyUrl = proxyUrl
-	} else if conf.ProxyUrl == "" {
-		log.Error("PROXY_URL is not defined in environment")
-	}
-
-	setProxy, err := c.GetenvString("PROXY_ENABLE", "Set Proxy Enable/Disable")
-	if err == nil && setProxy != "" {
-		conf.ProxyEnable = setProxy
-	} else if conf.ProxyEnable == "" {
-		conf.ProxyEnable = strconv.FormatBool(constants.ProxyDisable)
 	}
 
 	tlsCertCN, err := c.GetenvString("SGX_AGENT_TLS_CERT_CN", "SGX_AGENT TLS Certificate Common Name")

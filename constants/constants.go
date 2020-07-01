@@ -59,6 +59,4 @@ const (
 	Stopped State = false
 	// Running means the daemon is active
 	Running      State = true
-	ProxyEnable        = true
-	ProxyDisable       = false
 )
