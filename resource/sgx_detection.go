@@ -248,7 +248,7 @@ func getPlatformInfo() errorHandlerFunc {
 		log.Trace("resource/sgx_detection:GetPlatformInfo() Entering")
 		defer log.Trace("resource/sgx_detection:GetPlatformInfo() Leaving")
 
-		err := AuthorizeEndpoint(httpRequest, constants.HostDataReaderGroupName, true)
+		err := authorizeEndpoint(httpRequest, constants.HostDataReaderGroupName, true)
 		if err != nil {
 			return err
 		}

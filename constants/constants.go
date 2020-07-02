@@ -18,37 +18,37 @@ const (
 	HTTPLogFile     = LogDir + "http.log"
 	ConfigFile      = "config.yml"
 
-	SerialNumberPath                 = ConfigDir + "serial-number"
-	TokenSignKeysAndCertDir          = ConfigDir + "certs/tokensign/"
-	TokenSignCertFile                = TokenSignKeysAndCertDir + "jwtsigncert.pem"
-	TrustedJWTSigningCertsDir        = ConfigDir + "certs/trustedjwt/"
-	TrustedCAsStoreDir               = ConfigDir + "certs/trustedca/"
-	DefaultTLSCertFile               = ConfigDir + "tls-cert.pem"
-	DefaultTLSKeyFile                = ConfigDir + "tls.key"
-	JWTCertsCacheTime                = "60m"
-	CmsTlsCertDigestEnv              = "CMS_TLS_CERT_SHA384"
-	SGXAgentLogLevel                 = "SGX_AGENT_LOGLEVEL"
-	DefaultReadTimeout               = 30 * time.Second
-	DefaultReadHeaderTimeout         = 10 * time.Second
-	DefaultWriteTimeout              = 10 * time.Second
-	DefaultIdleTimeout               = 10 * time.Second
-	DefaultMaxHeaderBytes            = 1 << 20
-	DefaultLogEntryMaxLength         = 300
-	ServiceRemoveCmd                 = "systemctl disable sgx_agent"
-	DefaultAuthDefendMaxAttempts     = 5
-	DefaultAuthDefendIntervalMins    = 5
-	DefaultAuthDefendLockoutMins     = 15
-	ServiceName                      = "SGX_AGENT"
-	HostDataReaderGroupName          = "HostDataReader"
-	SGXAgentUserName                 = "sgx_agent"
-	DefaultTokenDurationMins         = 240
-	DefaultHttpPort                  = 8445
-	DefaultKeyAlgorithm              = "rsa"
-	DefaultKeyAlgorithmLength        = 3072
-	DefaultTlsSan                    = "127.0.0.1,localhost"
-	DefaultSGX_AgentTlsCn            = "SGX_AGENT TLS Certificate"
-	CertApproverGroupName            = "CertApprover"
-	DefaultRootCACommonName          = "SGX_AGENTCA"
+	SerialNumberPath              = ConfigDir + "serial-number"
+	TokenSignKeysAndCertDir       = ConfigDir + "certs/tokensign/"
+	TokenSignCertFile             = TokenSignKeysAndCertDir + "jwtsigncert.pem"
+	TrustedJWTSigningCertsDir     = ConfigDir + "certs/trustedjwt/"
+	TrustedCAsStoreDir            = ConfigDir + "certs/trustedca/"
+	DefaultTLSCertFile            = ConfigDir + "tls-cert.pem"
+	DefaultTLSKeyFile             = ConfigDir + "tls.key"
+	JWTCertsCacheTime             = "60m"
+	CmsTlsCertDigestEnv           = "CMS_TLS_CERT_SHA384"
+	SGXAgentLogLevel              = "SGX_AGENT_LOGLEVEL"
+	DefaultReadTimeout            = 30 * time.Second
+	DefaultReadHeaderTimeout      = 10 * time.Second
+	DefaultWriteTimeout           = 10 * time.Second
+	DefaultIdleTimeout            = 10 * time.Second
+	DefaultMaxHeaderBytes         = 1 << 20
+	DefaultLogEntryMaxLength      = 300
+	ServiceRemoveCmd              = "systemctl disable sgx_agent"
+	DefaultAuthDefendMaxAttempts  = 5
+	DefaultAuthDefendIntervalMins = 5
+	DefaultAuthDefendLockoutMins  = 15
+	ServiceName                   = "SGX_AGENT"
+	HostDataReaderGroupName       = "HostDataReader"
+	SGXAgentUserName              = "sgx_agent"
+	DefaultTokenDurationMins      = 240
+	DefaultHttpPort               = 8445
+	DefaultKeyAlgorithm           = "rsa"
+	DefaultKeyAlgorithmLength     = 3072
+	DefaultTlsSan                 = "127.0.0.1,localhost"
+	DefaultSGX_AgentTlsCn         = "SGX_AGENT TLS Certificate"
+	CertApproverGroupName         = "CertApprover"
+	DefaultRootCACommonName       = "SGX_AGENTCA"
 )
 
 // State represents whether or not a daemon is running or not
@@ -58,5 +58,5 @@ const (
 	// Stopped is the default nil value, indicating not running
 	Stopped State = false
 	// Running means the daemon is active
-	Running      State = true
+	Running State = true
 )

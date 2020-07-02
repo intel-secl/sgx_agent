@@ -173,7 +173,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.CertSANList == "" {
 		conf.CertSANList = constants.DefaultTlsSan
 	}
-	
+
 	return conf.Save()
 }
 
