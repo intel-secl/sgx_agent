@@ -3,6 +3,7 @@
 SGX_DCAP_REPO="https://github.com/intel/SGXDataCenterAttestationPrimitives.git"
 GIT_CLONE_PATH=/tmp/dataCenterAttestationPrimitives
 SGX_DCAP_RPM_VER=1.6.90.2-1
+SGX_DCAP_TAG=DCAP_1.6
 
 install_sgx_components()
 {
@@ -31,6 +32,7 @@ install_sgx_components()
 	fi
 
 	git clone $SGX_DCAP_REPO $GIT_CLONE_PATH/
+	git checkout $SGX_DCAP_TAG
 	cp $path/remove_pccs_connect.diff $GIT_CLONE_PATH/
 
 	#Build Registration Service
