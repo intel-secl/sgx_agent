@@ -5,8 +5,6 @@
 #to customize, export the correct values before running the script
 
 echo "Setting up SGX_AGENT Related roles and user in AAS Database"
-unset https_proxy
-unset http_proxy
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
 aas_hostname=${AAS_URL:-"https://10.80.245.104:8444"}
@@ -29,7 +27,6 @@ curl_output=`curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Acc
 
 Bearer_token=`echo $curl_output | rev | cut -c 4- | rev`
 response_status=`echo "${curl_output: -3}"`
-#sah config aasAdmin.bearer.token $Bearer_token >/dev/null
 
 if rpm -q jq; then
 	echo "JQ package installed"
@@ -42,8 +39,8 @@ fi
 create_sgx_agent_user() {
 cat > $tmpdir/user.json << EOF
 {
-		"username":"sgx_agent",
-		"password":"password"
+	"username":"sgx_agent",
+	"password":"password"
 }
 EOF
 
@@ -59,7 +56,6 @@ if [ $actual_status -ne 201 ]; then
 fi
 
 if [ -s $tmpdir/user_response.json ]; then
-	#jq < $tmpdir/user_response.json
 	user_id=$(jq -r '.user_id' < $tmpdir/user_response.json)
 	if [ -n "$user_id" ]; then
 		echo "Created user id: $user_id"
@@ -68,8 +64,8 @@ if [ -s $tmpdir/user_response.json ]; then
 fi
 }
 
-#Add SAH roles
-#cms role(sah will create these roles where CN=SAH), getroles(api in aas that is to be map with), keyTransfer, keyCrud
+#Add SGX AGENT roles
+#cms role(agent will create these roles where CN=SGX AGENT), getroles(api in aas that is to be map with), keyTransfer, keyCrud
 create_user_roles() {
 
 cat > $tmpdir/roles.json << EOF
@@ -99,13 +95,13 @@ echo "$role_id"
 
 create_roles() {
 
-		local cms_role_id=$( create_user_roles "CMS" "CertApprover" "CN=$CN;SAN=$IPADDR;CERTTYPE=TLS" ) #get roleid
-		local hvs_role_id=$( create_user_roles "SHVS" "HostRegistration" "" )
-		ROLE_ID_TO_MAP=`echo \"$cms_role_id\",\"$hvs_role_id\"`
-		echo $ROLE_ID_TO_MAP
+	local cms_role_id=$( create_user_roles "CMS" "CertApprover" "CN=$CN;SAN=$IPADDR;CERTTYPE=TLS" ) #get roleid
+	local hvs_role_id=$( create_user_roles "SHVS" "HostRegistration" "" )
+	ROLE_ID_TO_MAP=`echo \"$cms_role_id\",\"$hvs_role_id\"`
+	echo $ROLE_ID_TO_MAP
 }
 
-#Map sahUser to Roles
+#Map sgx_agent User to Roles
 mapUser_to_role() {
 cat >$tmpdir/mapRoles.json <<EOF
 {
@@ -122,7 +118,6 @@ fi
 }
 
 SGX_AGENT_SETUP_API="create_sgx_agent_user create_roles mapUser_to_role"
-#SAH_SETUP_API="mapUser_to_role"
 
 status=
 for api in $SGX_AGENT_SETUP_API
@@ -130,10 +125,10 @@ do
 	echo $api
 	eval $api
     	status=$?
-    if [ $status -ne 0 ]; then
-        echo "SGX_Agent-AAS User/Roles creation failed.: $api"
-        break;
-    fi
+	if [ $status -ne 0 ]; then
+		echo "SGX_Agent-AAS User/Roles creation failed.: $api"
+		break;
+	fi
 done
 
 if [ $status -eq 0 ]; then
@@ -155,4 +150,4 @@ else
 fi
 
 # cleanup
-#rm -rf $tmpdir
+rm -rf $tmpdir

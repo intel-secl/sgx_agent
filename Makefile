@@ -4,7 +4,6 @@ GITCOMMIT := $(shell git describe --always)
 VERSION := $(or ${GITTAG}, v0.0.0)
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 
-PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 .PHONY: sgx_agent installer all test clean
 
 sgx_agent:

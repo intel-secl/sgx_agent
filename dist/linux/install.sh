@@ -28,20 +28,17 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-#echo "Setting up SGX Agent Service Linux User..."
+echo "Setting up SGX Agent Service Linux User..."
 id -u $SERVICE_USERNAME 2> /dev/null || useradd --shell /bin/false $SERVICE_USERNAME
 
 echo "Installing SGX Agent Service..."
 
-
 COMPONENT_NAME=sgx_agent
 PRODUCT_HOME=/opt/$COMPONENT_NAME
 BIN_PATH=$PRODUCT_HOME/bin
-#DB_SCRIPT_PATH=$PRODUCT_HOME/dbscripts
 LOG_PATH=/var/log/$COMPONENT_NAME/
 CONFIG_PATH=/etc/$COMPONENT_NAME/
 CERTS_PATH=$CONFIG_PATH/certs
-#CERTDIR_TOKENSIGN=$CERTS_PATH/tokensign
 CERTDIR_TRUSTEDJWTCERTS=$CERTS_PATH/trustedjwt
 CERTDIR_TRUSTEDJWTCAS=$CERTS_PATH/trustedca
 
@@ -53,30 +50,24 @@ for directory in $BIN_PATH $LOG_PATH $CONFIG_PATH $CERTS_PATH $CERTDIR_TRUSTEDJW
     exit 1
   fi
   chown -R $SERVICE_USERNAME:$SERVICE_USERNAME $directory
-  #chown -R root:root $directory
   chmod 700 $directory
   chmod g+s $directory
 done
 
-
 cp $COMPONENT_NAME $BIN_PATH/ && chown $SERVICE_USERNAME:$SERVICE_USERNAME $BIN_PATH/*
-#cp $COMPONENT_NAME $BIN_PATH/ && chown root:root $BIN_PATH/*
 chmod 700 $BIN_PATH/*
 ln -sfT $BIN_PATH/$COMPONENT_NAME /usr/bin/$COMPONENT_NAME
 
-#mkdir -p $CONFIG_PATH/root-ca && chown root:root $CONFIG_PATH/root-ca
 mkdir -p $CONFIG_PATH/root-ca && chown sgx_agent:sgx_agent $CONFIG_PATH/root-ca
 chmod 700 $CONFIG_PATH/root-ca
 chmod g+s $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
-#mkdir -p $LOG_PATH && chown root:root $LOG_PATH
 mkdir -p $LOG_PATH && chown sgx_agent:sgx_agent $LOG_PATH
 chmod 755 $LOG_PATH
 chmod g+s $LOG_PATH
 
 # Install systemd script
-#cp sgx_agent.service $PRODUCT_HOME && chown root:root $PRODUCT_HOME/sgx_agent.service && chown root:root $PRODUCT_HOME
 cp sgx_agent.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/sgx_agent.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
 
 # Enable systemd service
@@ -88,9 +79,9 @@ systemctl daemon-reload
 auto_install() {
   local component=${1}
   local cprefix=${2}
-  local yum_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
+  local dnf_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
-  yum -y install $yum_packages
+  dnf -y install $dnf_packages
 }
 
 # SCRIPT EXECUTION
@@ -150,7 +141,6 @@ if [ "${SGX_AGENT_NOSETUP,,}" == "true" ]; then
     echo "SGX_AGENT_NOSETUP is true, skipping setup"
     echo "Installation completed successfully!"
 else
-	#chown -R root:root /opt/sgx_agent/bin/sgx_agent
     $COMPONENT_NAME setup all
     SETUPRESULT=$?
     if [ ${SETUPRESULT} == 0 ]; then
