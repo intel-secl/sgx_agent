@@ -42,7 +42,7 @@ const (
 	HostDataReaderGroupName       = "HostDataReader"
 	SGXAgentUserName              = "sgx_agent"
 	DefaultTokenDurationMins      = 240
-	DefaultHttpPort               = 8445
+	DefaultHttpPort               = 11001
 	DefaultKeyAlgorithm           = "rsa"
 	DefaultKeyAlgorithmLength     = 3072
 	DefaultTlsSan                 = "127.0.0.1,localhost"
