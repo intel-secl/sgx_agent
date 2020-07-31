@@ -268,7 +268,7 @@ func getPlatformInfo() errorHandlerFunc {
 		}
 
 		httpWriter.Write(js)
-		log.Trace("resource/sgx_detection:getPlatformInfo() Returned requested")
+		slog.Info("Platform data retrieved by:", httpRequest.RemoteAddr)
 		return nil
 	}
 }
