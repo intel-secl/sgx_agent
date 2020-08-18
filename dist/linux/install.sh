@@ -64,7 +64,7 @@ chmod g+s $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sgx_agent:sgx_agent $LOG_PATH
-chmod 755 $LOG_PATH
+chmod 700 $LOG_PATH
 chmod g+s $LOG_PATH
 
 # Install systemd script
