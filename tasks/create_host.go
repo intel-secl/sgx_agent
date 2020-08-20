@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019 Intel Corporation
+* Copyright (C) 2020 Intel Corporation
 * SPDX-License-Identifier: BSD-3-Clause
  */
 package tasks
@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v2"
-	"intel/isecl/lib/common/v2/setup"
+	"intel/isecl/lib/clients/v3"
+	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sgx_agent/config"
 	"intel/isecl/sgx_agent/constants"
 	"intel/isecl/sgx_agent/utils"

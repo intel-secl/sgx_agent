@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package config
@@ -17,7 +17,6 @@ func TestLoad(t *testing.T) {
 	temp.WriteString("cmsbaseurl: https://10.105.168.217:8445/cms/v1/\nsgx_agent:\n")
 	defer os.Remove(temp.Name())
 	c := Load(temp.Name())
-	//assert.Equal(t, "https://10.105.168.217:8445/cms/v1/", c.CMSBaseUrl)
 	assert.Equal(t, "https://10.105.168.217:8445/cms/v1/", c.CMSBaseUrl)
 }
 

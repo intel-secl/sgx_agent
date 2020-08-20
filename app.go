@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package main
@@ -11,11 +11,11 @@ import (
 	"crypto/x509/pkix"
 	"flag"
 	"fmt"
-	"intel/isecl/lib/common/v2/crypt"
-	e "intel/isecl/lib/common/v2/exec"
-	"intel/isecl/lib/common/v2/middleware"
-	"intel/isecl/lib/common/v2/setup"
-	"intel/isecl/lib/common/v2/validation"
+	"intel/isecl/lib/common/v3/crypt"
+	e "intel/isecl/lib/common/v3/exec"
+	"intel/isecl/lib/common/v3/middleware"
+	"intel/isecl/lib/common/v3/setup"
+	"intel/isecl/lib/common/v3/validation"
 	"intel/isecl/sgx_agent/config"
 	"intel/isecl/sgx_agent/constants"
 	"intel/isecl/sgx_agent/resource"
@@ -39,11 +39,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
-	commLog "intel/isecl/lib/common/v2/log"
-	commLogMsg "intel/isecl/lib/common/v2/log/message"
-	commLogInt "intel/isecl/lib/common/v2/log/setup"
-	cos "intel/isecl/lib/common/v2/os"
-	"intel/isecl/lib/common/v2/proc"
+	commLog "intel/isecl/lib/common/v3/log"
+	commLogMsg "intel/isecl/lib/common/v3/log/message"
+	commLogInt "intel/isecl/lib/common/v3/log/setup"
+	cos "intel/isecl/lib/common/v3/os"
+	"intel/isecl/lib/common/v3/proc"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -533,7 +533,7 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 	defer log.Trace("app:validateCmdAndEnv() Leaving")
 
 	env_names := make([]string, 0)
-	for k, _ := range env_names_cmd_opts {
+	for k := range env_names_cmd_opts {
 		env_names = append(env_names, k)
 	}
 
