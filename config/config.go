@@ -38,12 +38,6 @@ type Configuration struct {
 	CACertValidity     int
 	TokenDurationMins  int
 
-	AuthDefender struct {
-		MaxAttempts         int
-		IntervalMins        int
-		LockoutDurationMins int
-	}
-
 	SGX_AgentUserName string
 	SGX_AgentPassword string
 	CMSBaseUrl        string

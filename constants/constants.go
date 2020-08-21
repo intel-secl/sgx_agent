@@ -35,9 +35,6 @@ const (
 	DefaultMaxHeaderBytes         = 1 << 20
 	DefaultLogEntryMaxLength      = 300
 	ServiceRemoveCmd              = "systemctl disable sgx_agent"
-	DefaultAuthDefendMaxAttempts  = 5
-	DefaultAuthDefendIntervalMins = 5
-	DefaultAuthDefendLockoutMins  = 15
 	ServiceName                   = "SGX_AGENT"
 	HostDataReaderGroupName       = "HostDataReader"
 	SGXAgentUserName              = "sgx_agent"
