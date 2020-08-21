@@ -9,7 +9,6 @@ import (
 	"errors"
 	"os"
 	"path"
-	"sync"
 	"time"
 
 	errorLog "github.com/pkg/errors"
@@ -59,7 +58,6 @@ type Configuration struct {
 	TrustedRootCA *x509.Certificate
 }
 
-var mu sync.Mutex
 var global *Configuration
 
 func Global() *Configuration {
