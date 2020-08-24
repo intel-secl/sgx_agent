@@ -116,11 +116,11 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	sgxHVSBaseUrl, err := c.GetenvString("HVS_BASE_URL", "HVS Base URL")
+	sgxHVSBaseUrl, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
 	if err == nil && sgxHVSBaseUrl != "" {
 		conf.SGXHVSBaseUrl = sgxHVSBaseUrl
 	} else if conf.SGXHVSBaseUrl == "" {
-		log.Error("HVS_BASE_URL is not defined in environment")
+		log.Error("SHVS_BASE_URL is not defined in environment")
 	}
 
 	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")

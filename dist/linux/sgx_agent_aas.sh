@@ -7,9 +7,9 @@
 echo "Setting up SGX_AGENT Related roles and user in AAS Database"
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
-aas_hostname=${AAS_URL:-"https://10.80.245.104:8444"}
+aas_hostname=${AAS_URL:-"https://<aas.server.com>:8444"}
 CURL_OPTS="-s -k"
-IPADDR="10.105.167.70"
+IPADDR="<comma-separated list of IPs and hostnames for SGX Agent>"
 CN="SGX_AGENT TLS Certificate"
 
 mkdir -p /tmp/setup/sgx_agent
