@@ -11,11 +11,10 @@ install_sgx_components()
 {
 	#install msr-tools
 	if [ ! -f /usr/sbin/rdmsr ]; then
-		dnf localinstall -y http://rpmfind.net/linux/fedora/linux/releases/30/Everything/x86_64/os/Packages/m/msr-tools-1.3-11.fc30.x86_64.rpm
+		dnf localinstall -y https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Everything/x86_64/os/Packages/m/msr-tools-1.3-11.fc30.x86_64.rpm
 	fi
 	rm -rf $GIT_CLONE_PATH
 
-	# remove_pccs_connect.diff disables access to PCCS
 	echo "Please provide patch file path"
 	read path
 	if [ ! -f $path/remove_pccs_connect.diff ]; then
