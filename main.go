@@ -6,6 +6,7 @@ package main
 
 import (
 	"intel/isecl/sgx_agent/constants"
+	_ "intel/isecl/sgx_agent/swagger/docs"
 	"os"
 	"os/user"
 	"strconv"
