@@ -1,3 +1,126 @@
-# sgx_agent
+SGX Agent
+=========
 
-SGX Agent is primarily involved in SGX technology discovery and collection of SGX attributes on a SGX enabled platform (Single Sokcet/Multi socket)
+`SGX Agent` is primarily involved in SGX technology discovery and
+collection of SGX attributes on a SGX enabled platform (Single
+Socket/Multi socket).
+
+Key features
+------------
+
+-   SGX agent required for SGX Discovery and Provisioning
+-   Collects the SGX platform-specific values, explicitly Encrypted
+    PPID, CPU SVN, ISV SVN, PCE ID, and QEID
+-   SGX Agent provides platform SGX-related information to the SGX Host
+    Verification Service
+
+System Requirements
+-------------------
+
+-   RHEL 8.2
+-   Epel 8 Repo
+-   Proxy settings if applicable
+-   SHVS should be up and running
+
+Software requirements
+---------------------
+
+-   git
+-   makeself
+-   Go 1.14.1 or newer
+
+Step By Step Build Instructions
+===============================
+
+Install required shell commands
+-------------------------------
+
+### Install tools from `dnf`
+
+``` {.shell}
+sudo dnf install -y git wget makeself
+```
+
+### Install `go 1.14.1` or newer
+
+The `Certificate Management Service` requires Go version 1.14 that has
+support for `go modules`. The build was validated with version 1.14.1
+version of `go`. It is recommended that you use a newer version of `go`
+- but please keep in mind that the product has been validated with
+1.14.1 and newer versions of `go` may introduce compatibility issues.
+You can use the following to install `go`.
+
+``` {.shell}
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
+tar -xzf go1.14.2.linux-amd64.tar.gz
+sudo mv go /usr/local
+export GOROOT=/usr/local/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+```
+
+Build SGX Agent
+---------------
+
+-   Git clone the SGX Agent
+-   Run scripts to build the SGX Agent
+
+``` {.shell}
+git clone https://github.com/intel-secl/skc-tools.git
+cd skc-tools/sgx_agent/build_scripts
+
+- To build SGX Agent,
+#./sgxagent_build.sh
+- This script will generate a tarball(sgx_agent.tar) and checksum file(sgx_agent.sha2)
+- Copy sgx_agent.tar, sgx_agent.sha2 and untar.sh(from sgx_agent directory) to a directory in the deployment machine
+```
+
+### Manage service
+
+-   Start service
+    -   sgx\_agent start
+-   Stop service
+    -   sgx\_agent stop
+-   Restart service
+    -   sgx\_agent restart
+-   Status of service
+    -   sgx\_agent status
+
+Third Party Dependencies
+========================
+
+Certificate Management Service
+------------------------------
+
+Authentication and Authorization Service
+----------------------------------------
+
+### Direct dependencies
+
+  Name       Repo URL                            Minimum Version Required
+  ---------- ----------------------------- ------------------------------------
+  uuid       github.com/google/uuid                       v1.1.1
+  cpuid      github.com/klauspost/cpuid                   v1.2.1
+  handlers   github.com/gorilla/handlers                  v1.4.0
+  mux        github.com/gorilla/mux                       v1.7.3
+  errors     github.com/pkg/errors                        v0.9.1
+  gorm       github.com/jinzhu/gorm                      v1.9.10
+  logrus     github.com/sirupsen/logrus                   v1.4.0
+  testify    github.com/stretchr/testify                  v1.3.0
+  crypto     golang.org/x/crypto            v0.0.0-20190325154230-a5d413f7728c
+  time       golang.org/x/time              v0.0.0-20190308202827-9d24e82272b4
+  yaml.v2    gopkg.in/yaml.v2                             v2.2.2
+  common     intel/isecl/lib/common                    v3.0/develop
+  clients    intel/isecl/lib/clients                      v3.0.0
+
+### Indirect Dependencies
+
+  Repo URL    Minimum version required
+  ---------- --------------------------
+             
+
+*Note: All dependencies are listed in go.mod*
+
+Links
+=====
+
+<https://01.org/intel-secl/>
