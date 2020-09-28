@@ -51,8 +51,8 @@ version of `go`. It is recommended that you use a newer version of `go`
 You can use the following to install `go`.
 
 ``` {.shell}
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
-tar -xzf go1.14.2.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
+tar -xzf go1.14.1.linux-amd64.tar.gz
 sudo mv go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
@@ -109,8 +109,8 @@ Authentication and Authorization Service
   crypto     golang.org/x/crypto            v0.0.0-20190325154230-a5d413f7728c
   time       golang.org/x/time              v0.0.0-20190308202827-9d24e82272b4
   yaml.v2    gopkg.in/yaml.v2                             v2.2.2
-  common     intel/isecl/lib/common                    v3.0/develop
-  clients    intel/isecl/lib/clients                      v3.0.0
+  clients    intel/isecl/lib/clients                      v3.1.0
+  common     intel/isecl/lib/common                   	  v3.1.0
 
 ### Indirect Dependencies
 
