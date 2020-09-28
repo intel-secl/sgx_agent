@@ -10,7 +10,7 @@ Key features
 
 -   SGX agent required for SGX Discovery and Provisioning
 -   Collects the SGX platform-specific values, explicitly Encrypted
-    PPID, CPU SVN, ISV SVN, PCE ID, and QEID
+    PPID, CPU SVN, ISV SVN, PCE ID, Manifest and QEID
 -   SGX Agent provides platform SGX-related information to the SGX Host
     Verification Service
 
