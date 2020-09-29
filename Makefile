@@ -6,6 +6,13 @@ BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 
 .PHONY: sgx_agent installer all clean
 
+installer: sgx_agent
+	mkdir -p out/installer
+	cp dist/linux/sgx_agent.service out/installer/sgx_agent.service
+	cp dist/linux/install.sh out/installer/install.sh && chmod +x out/installer/install.sh
+	cp out/sgx_agent out/installer/sgx_agent
+	makeself out/installer out/sgx_agent-$(VERSION).bin "SGX Agent Discovery $(VERSION)" ./install.sh
+
 sgx_agent:
 	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/scs/version.BuildDate=$(BUILDDATE) -X intel/isecl/sgx_agent/version.Version=$(VERSION) -X intel/isecl/sgx_agent/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
 
@@ -21,12 +28,7 @@ swagger-doc:
 
 swagger: swagger-get swagger-doc
 
-installer: sgx_agent
-	mkdir -p out/installer
-	cp dist/linux/sgx_agent.service out/installer/sgx_agent.service
-	cp dist/linux/install.sh out/installer/install.sh && chmod +x out/installer/install.sh
-	cp out/sgx_agent out/installer/sgx_agent
-	makeself out/installer out/sgx_agent-$(VERSION).bin "SGX Agent Discovery $(VERSION)" ./install.sh
+all: clean installer
 
 clean:
 	rm -f cover.*
