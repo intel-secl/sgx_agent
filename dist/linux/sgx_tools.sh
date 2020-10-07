@@ -11,7 +11,7 @@ install_sgx_components()
 {
 	#install msr-tools
 	if [ ! -f /usr/sbin/rdmsr ]; then
-		dnf localinstall -y https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Everything/x86_64/os/Packages/m/msr-tools-1.3-11.fc30.x86_64.rpm
+		dnf localinstall -y https://dl.fedoraproject.org/pub/fedora/linux/releases/32/Everything/x86_64/os/Packages/m/msr-tools-1.3-13.fc32.x86_64.rpm
 	fi
 	rm -rf $GIT_CLONE_PATH
 
