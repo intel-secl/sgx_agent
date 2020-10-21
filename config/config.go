@@ -43,6 +43,7 @@ type Configuration struct {
 	AuthServiceUrl    string
 	SGXHVSBaseUrl     string
 	SVSBaseURL        string
+	ScsBaseUrl        string
 	Subject           struct {
 		TLSCertCommonName string
 	}
@@ -56,6 +57,10 @@ type Configuration struct {
 	MaxHeaderBytes    int
 
 	TrustedRootCA *x509.Certificate
+
+	SGXAgentMode string
+	WaitTime     int
+	RetryCount   int
 }
 
 var global *Configuration
@@ -123,6 +128,13 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		log.Error("SHVS_BASE_URL is not defined in environment")
 	}
 
+	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
+	if err == nil && scsBaseUrl != "" {
+		conf.ScsBaseUrl = scsBaseUrl
+	} else if conf.ScsBaseUrl == "" {
+		log.Error("SCS_BASE_URL  is not defined in environment")
+	}
+
 	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
 	if err != nil {
 		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SGXAgentLogLevel)
@@ -164,6 +176,35 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CertSANList = sanList
 	} else if conf.CertSANList == "" {
 		conf.CertSANList = constants.DefaultTlsSan
+	}
+
+	sgx_agent_mode, err := c.GetenvString("SGX_AGENT_MODE", "SGX Agent Mode")
+	if err == nil && sgx_agent_mode != "" {
+		conf.SGXAgentMode = sgx_agent_mode
+	} else {
+		conf.SGXAgentMode = constants.DefaultSgxAgentMode
+	}
+
+	waittime, err := c.GetenvInt("WAIT_TIME", "time between each retries to PCS")
+	if err == nil {
+		if waittime > constants.DefaultWaitTime {
+			conf.WaitTime = waittime
+		} else {
+			conf.WaitTime = constants.DefaultWaitTime
+		}
+	} else {
+		conf.WaitTime = constants.DefaultWaitTime
+	}
+
+	retrycount, err := c.GetenvInt("RETRY_COUNT", "Push Data Retry Count to SCS")
+	if err == nil {
+		if retrycount > constants.DefaultRetryCount {
+			conf.RetryCount = retrycount
+		} else {
+			conf.RetryCount = constants.DefaultRetryCount
+		}
+	} else {
+		conf.RetryCount = constants.DefaultRetryCount
 	}
 
 	return conf.Save()
