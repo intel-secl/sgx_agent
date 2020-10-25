@@ -14,11 +14,9 @@ if [ -z $env_file ]; then
     echo No .env file found
     SGX_AGENT_NOSETUP="true"
 else
-	echo $env_file
     source $env_file
     env_file_exports=$(cat $env_file | grep -E '^[A-Z0-9_]+\s*=' | cut -d = -f 1)
     if [ -n "$env_file_exports" ]; then eval export $env_file_exports; fi
-
 fi
 
 SERVICE_USERNAME=sgx_agent
@@ -113,11 +111,11 @@ logRotate_install() {
 
 logRotate_install
 
-export LOG_ROTATION_PERIOD=${LOG_ROTATION_PERIOD:-hourly}
+export LOG_ROTATION_PERIOD=${LOG_ROTATION_PERIOD:-weekly}
 export LOG_COMPRESS=${LOG_COMPRESS:-compress}
 export LOG_DELAYCOMPRESS=${LOG_DELAYCOMPRESS:-delaycompress}
 export LOG_COPYTRUNCATE=${LOG_COPYTRUNCATE:-copytruncate}
-export LOG_SIZE=${LOG_SIZE:-1K}
+export LOG_SIZE=${LOG_SIZE:-100M}
 export LOG_OLD=${LOG_OLD:-12}
 
 mkdir -p /etc/logrotate.d
