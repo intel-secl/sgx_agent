@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	clog "intel/isecl/lib/common/v3/log"
 	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/sgx_agent/config"
-	"intel/isecl/sgx_agent/constants"
+	"intel/isecl/sgx_agent/v3/config"
+	"intel/isecl/sgx_agent/v3/constants"
 	"io"
 	"time"
 )

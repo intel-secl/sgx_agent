@@ -6,7 +6,7 @@ package utils
 
 import (
 	"fmt"
-	"intel/isecl/sgx_agent/config"
+	"intel/isecl/sgx_agent/v3/config"
 )
 
 func GetConnectionString(cfg *config.Configuration) (string, error) {

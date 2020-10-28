@@ -4,7 +4,7 @@
  */
 package docs
 
-import "intel/isecl/sgx_agent/resource"
+import "intel/isecl/sgx_agent/v3/resource"
 
 // PlatformResponse response payload
 // swagger:response PlatformResponse

@@ -7,7 +7,7 @@ package tasks
 import (
 	"github.com/stretchr/testify/assert"
 	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/sgx_agent/config"
+	"intel/isecl/sgx_agent/v3/config"
 	"io/ioutil"
 	"os"
 	"testing"
