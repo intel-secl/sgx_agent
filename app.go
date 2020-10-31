@@ -365,6 +365,10 @@ func (a *App) startServer() error {
 	log.Info("Starting SGX Agent server")
 
 	err := resource.Extract_SGXPlatformValues()
+	if err != nil && c.SGXAgentMode == constants.RegistrationMode {
+		log.WithError(err).Error("SGX Agent is set to Registration Mode. Cannot Extract SGX Platform Values, Terminating...")
+		return err
+	}
 	if err != nil {
 		log.WithError(err).Error("error came while installing sgx agent. Starting anyways.....")
 	}
@@ -403,6 +407,29 @@ func (a *App) startServer() error {
 		WriteTimeout:      c.WriteTimeout,
 		IdleTimeout:       c.IdleTimeout,
 		MaxHeaderBytes:    c.MaxHeaderBytes,
+	}
+
+	if c.SGXAgentMode == constants.RegistrationMode {
+		// dispatch push sgx data go routine
+		// This routine pushes platform data to SCS. If the push fails, the SGX Agent retries 5 (RETRY_COUNT) times.
+		// If it still fails, SGX Agent sleeps till WAIT_TIME and tries 5 (RETRY_COUNT) times again.
+		// The SGX Agent continues this retry cycle until it succeeds at which time, it terminates.
+		proc.AddTask(false)
+		go func() {
+			defer proc.TaskDone()
+			flag, err := resource.PushSGXData()
+			if flag == false && err != nil {
+				log.Error("PushSGXData: Error in SGX Data push: ", err.Error())
+			} else if flag == true && err != nil {
+				log.Error("Pushing data to SCS ended with Error. Will Retry." + err.Error())
+			} else if flag == true && err == nil {
+				log.Info("SGX data is pushed to SCS.")
+			}
+
+			log.Info("Sleeping 5 seconds before sending stop signal...")
+			time.Sleep(5 * time.Second)
+			proc.QuitChan <- true
+		}()
 	}
 
 	proc.AddTask(false)

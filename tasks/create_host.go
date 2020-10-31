@@ -53,6 +53,11 @@ func (task CreateHost) Run(c setup.Context) error {
 	var err error
 	var host_info, host_info1 Host
 
+	if task.Config.SGXAgentMode == constants.RegistrationMode {
+		fmt.Fprintln(task.ConsoleWriter, "Skipping CreateHost in Registration Mode...")
+		return nil
+	}
+
 	task.hostName, err = utils.GetLocalHostname()
 	if err != nil {
 		return errors.Wrap(err, "tasks/create_host:Run() Error while getting Local hostName address")

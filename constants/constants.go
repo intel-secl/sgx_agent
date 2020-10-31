@@ -46,6 +46,10 @@ const (
 	DefaultSGX_AgentTlsCn     = "SGX_AGENT TLS Certificate"
 	CertApproverGroupName     = "CertApprover"
 	DefaultRootCACommonName   = "SGX_AGENTCA"
+	RegistrationMode          = "Registration"
+	DefaultSgxAgentMode       = "Orchestration"
+	DefaultWaitTime           = 5
+	DefaultRetryCount         = 5
 )
 
 // State represents whether or not a daemon is running or not

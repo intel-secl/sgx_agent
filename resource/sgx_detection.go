@@ -11,13 +11,19 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/klauspost/cpuid"
+	"github.com/pkg/errors"
+	"intel/isecl/lib/clients/v3"
+	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
+
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SGX_Discovery_Data struct {
@@ -49,6 +55,11 @@ var (
 	flcEnabledCmd      = []string{"rdmsr", "-ax", "0x3A"} ///MSR.IA32_Feature_Control register tells availability of SGX
 	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", "/opt/pckData"}
 )
+
+type SCSPushResponse struct {
+	Status  string `json:"Status"`
+	Message string `json:"Message"`
+}
 
 var sgxData SGX_Discovery_Data
 var platformData Paltform_Data
@@ -126,7 +137,9 @@ func Extract_SGXPlatformValues() error {
 			return err
 		}
 	} else {
-		log.Info("sgx and flc are not enable. Hence not running PCKIDRetrieval tool")
+		log.Info("sgx and flc are not enabled. Hence not running PCKIDRetrieval tool")
+		err := errors.New("unsupported")
+		return err
 	}
 	return nil
 }
@@ -257,6 +270,17 @@ func getPlatformInfo() errorHandlerFunc {
 			return &resourceError{Message: "Accept type not supported", StatusCode: http.StatusNotAcceptable}
 		}
 
+		conf := config.Global()
+		if conf == nil {
+			return errors.Wrap(errors.New("getPlatformInfo: Configuration pointer is null"), "Config error")
+		}
+
+		if conf.SGXAgentMode == constants.RegistrationMode {
+			httpWriter.WriteHeader(http.StatusNotImplemented)
+			log.Debug("getPlatformInfo: SGX Agent is in Registration mode. Returning 501 response.")
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusNotImplemented}
+		}
+
 		res := PlatformResponse{SGXData: sgxData, PData: platformData}
 
 		httpWriter.Header().Set("Content-Type", "application/json")
@@ -285,4 +309,112 @@ func convertToMB(b uint32) string {
 	}
 	return fmt.Sprintf("%.1f %cB",
 		float64(b)/float64(div), "kMGTPE"[exp])
+}
+
+func PushSGXData() (bool, error) {
+	log.Trace("resource/sgx_detection.go: PushSGXData() Entering")
+	defer log.Trace("resource/sgx_detection.go: PushSGXData() Leaving")
+	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+	if err != nil {
+		return false, errors.Wrap(err, "PushSGXData: Error in getting client object")
+	}
+
+	conf := config.Global()
+	if conf == nil {
+		return false, errors.Wrap(errors.New("PushSGXData: Configuration pointer is null"), "Config error")
+	}
+
+	pushUrl := conf.ScsBaseUrl + "/platforminfo/push"
+	log.Debug("PushSGXData: URL: ", pushUrl)
+
+	requestStr := map[string]string{
+		"enc_ppid": platformData.Encrypted_PPID,
+		"cpu_svn":  platformData.Cpu_svn,
+		"pce_svn":  platformData.Pce_svn,
+		"pce_id":   platformData.Pce_id,
+		"qe_id":    platformData.Qe_id,
+		"manifest": platformData.Manifest}
+
+	reqBytes, err := json.Marshal(requestStr)
+	if err != nil {
+		return false, errors.Wrap(err, "PushSGXData: Marshal error:"+err.Error())
+	}
+
+	req, err := http.NewRequest("POST", pushUrl, bytes.NewBuffer(reqBytes))
+	if err != nil {
+		return false, errors.Wrap(err, "PushSGXData: Failed to Get New request")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	err = utils.AddJWTToken(req)
+	if err != nil {
+		return false, errors.Wrap(err, "resource/sgx_atte_report_ops: PushSGXData() Failed to add JWT token to the authorization header")
+	}
+
+	resp, err := client.Do(req)
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		// fetch token and try again
+		utils.AasRWLock.Lock()
+		utils.AasClient.FetchAllTokens()
+		utils.AasRWLock.Unlock()
+		err = utils.AddJWTToken(req)
+		if err != nil {
+			return false, errors.Wrap(err, "PushSGXData: Failed to add JWT token to the authorization header")
+		}
+
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+		resp, err = client.Do(req)
+	}
+
+	var retries int = 0
+	var time_bw_calls int = conf.WaitTime
+
+	if err != nil || (resp != nil && resp.StatusCode >= http.StatusInternalServerError) {
+
+		for {
+			log.Errorf("Retrying for '%d'th time: ", retries)
+			req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+			resp, err = client.Do(req)
+
+			if resp != nil && resp.StatusCode < http.StatusInternalServerError {
+				log.Info("PushSGXData: Status code received: " + strconv.Itoa(resp.StatusCode))
+				log.Debug("PushSGXData: Retry count now: " + strconv.Itoa(retries))
+				break
+			}
+
+			if err != nil {
+				log.WithError(err).Info("PushSGXData:")
+			}
+
+			if resp != nil {
+				log.Error("PushSGXData: Invalid status code received: " + strconv.Itoa(resp.StatusCode))
+			}
+
+			retries += 1
+			if retries >= conf.RetryCount {
+				log.Errorf("PushSGXData: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
+				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
+				retries = 0
+			}
+		}
+	}
+
+	if resp != nil && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return false, errors.New("PushSGXData: Invalid status code received: " + strconv.Itoa(resp.StatusCode))
+	}
+
+	var pushResponse SCSPushResponse
+
+	dec := json.NewDecoder(resp.Body)
+	dec.DisallowUnknownFields()
+
+	err = dec.Decode(&pushResponse)
+	if err != nil {
+		return false, errors.Wrap(err, "PushSGXData: Read Response failed")
+	}
+
+	log.Debug("PushSGXData: Received SCS Response Data: ", pushResponse)
+	resp.Body.Close()
+	return true, nil
 }
