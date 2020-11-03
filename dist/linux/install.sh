@@ -143,16 +143,21 @@ else
     SETUPRESULT=$?
     if [ ${SETUPRESULT} == 0 ]; then
         systemctl start $COMPONENT_NAME
-        echo "Waiting for daemon to settle down before checking status"
-        sleep 3
-        systemctl status $COMPONENT_NAME 2>&1 > /dev/null
-        if [ $? != 0 ]; then
-            echo "Installation completed with Errors - $COMPONENT_NAME daemon not started."
-            echo "Please check errors in syslog using \`journalctl -u $COMPONENT_NAME\`"
-            exit 1
+        if [ "${SGX_AGENT_MODE}" == "Registration" ]; then
+            echo SGX_AGENT_MODE IS $SGX_AGENT_MODE
+            echo "Installation completed successfully!"
+        else
+            echo "Waiting for daemon to settle down before checking status"
+	    sleep 3
+	    systemctl status $COMPONENT_NAME 2>&1 > /dev/null
+	    if [ $? != 0 ]; then
+                echo "Installation completed with Errors - $COMPONENT_NAME daemon not started."
+		echo "Please check errors in syslog using \`journalctl -u $COMPONENT_NAME\`"
+		exit 1
+	    fi
+	    echo "$COMPONENT_NAME daemon is running"
+	    echo "Installation completed successfully!"
         fi
-        echo "$COMPONENT_NAME daemon is running"
-        echo "Installation completed successfully!"
     else
         echo "Installation completed with errors"
     fi
