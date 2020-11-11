@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Check OS and VERSION
+OS=$(cat /etc/os-release | grep ^ID= | cut -d'=' -f2)
+temp="${OS%\"}"
+temp="${temp#\"}"
+OS="$temp"
+
 # READ .env file
 echo PWD IS $(pwd)
 if [ -f ~/sgx_agent.env ]; then
@@ -79,7 +85,13 @@ auto_install() {
   local cprefix=${2}
   local dnf_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
+if [ "$OS" == "rhel" ]
+then  
   dnf -y install $dnf_packages
+elif [ "$OS" == "ubuntu" ]
+then  
+  apt -y install $dnf_packages
+fi 
 }
 
 # SCRIPT EXECUTION
