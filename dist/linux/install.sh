@@ -83,14 +83,14 @@ systemctl daemon-reload
 auto_install() {
   local component=${1}
   local cprefix=${2}
-  local dnf_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
+  local packages=$(eval "echo \$${cprefix}_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
 if [ "$OS" == "rhel" ]
 then
-  dnf -y install $dnf_packages
+  dnf -y install $packages
 elif [ "$OS" == "ubuntu" ]
 then
-  apt -y install $dnf_packages
+  apt -y install $packages
 fi
 }
 
@@ -108,7 +108,7 @@ logRotate_detect() {
 }
 
 logRotate_install() {
-  LOGROTATE_YUM_PACKAGES="logrotate"
+  LOGROTATE_PACKAGES="logrotate"
   if [ "$(whoami)" == "root" ]; then
     auto_install "Log Rotate" "LOGROTATE"
     if [ $? -ne 0 ]; then echo_failure "Failed to install logrotate"; exit -1; fi
