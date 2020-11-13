@@ -86,12 +86,12 @@ auto_install() {
   local dnf_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
 if [ "$OS" == "rhel" ]
-then  
+then
   dnf -y install $dnf_packages
 elif [ "$OS" == "ubuntu" ]
-then  
+then
   apt -y install $dnf_packages
-fi 
+fi
 }
 
 # SCRIPT EXECUTION
