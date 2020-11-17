@@ -65,8 +65,9 @@ Build SGX Agent
 -   Run scripts to build the SGX Agent
 
 ``` {.shell}
-git clone https://github.com/intel-secl/skc-tools.git
-cd skc-tools/sgx_agent/build_scripts
+git clone https://github.com/intel-secl/utils.git && cd utils
+gi checkout v3.2.0
+cd builds/skc-tools/sgx_agent/build_scripts
 
 - To build SGX Agent,
 #./sgxagent_build.sh
@@ -103,14 +104,14 @@ Authentication and Authorization Service
   handlers   github.com/gorilla/handlers                  v1.4.0
   mux        github.com/gorilla/mux                       v1.7.3
   errors     github.com/pkg/errors                        v0.9.1
-  gorm       github.com/jinzhu/gorm                      v1.9.10
+  gorm       github.com/jinzhu/gorm                       v1.9.10
   logrus     github.com/sirupsen/logrus                   v1.4.0
   testify    github.com/stretchr/testify                  v1.3.0
   crypto     golang.org/x/crypto            v0.0.0-20190325154230-a5d413f7728c
   time       golang.org/x/time              v0.0.0-20190308202827-9d24e82272b4
   yaml.v2    gopkg.in/yaml.v2                             v2.2.2
-  clients    intel/isecl/lib/clients                      v3.1.0
-  common     intel/isecl/lib/common                   	  v3.1.0
+  clients    github.com/intel-secl/clients                v3.2.0
+  common     github.com/intel-secl/common         	  v3.2.0
 
 ### Indirect Dependencies
 
