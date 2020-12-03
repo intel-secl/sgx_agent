@@ -70,13 +70,13 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "    sgx_agent <command> [arguments]")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Commands:")
-	fmt.Fprintln(w, "    help|-h|-help    Show this help message")
-	fmt.Fprintln(w, "    setup [task]     Run setup task")
-	fmt.Fprintln(w, "    start            Start sgx_agent")
-	fmt.Fprintln(w, "    status           Show the status of sgx_agent")
-	fmt.Fprintln(w, "    stop             Stop sgx_agent")
-	fmt.Fprintln(w, "    uninstall        Uninstall sgx_agent")
-	fmt.Fprintln(w, "    version          Show the version of sgx_agent")
+	fmt.Fprintln(w, "    help|-h|--help             Show this help message")
+	fmt.Fprintln(w, "    setup [task]               Run setup task")
+	fmt.Fprintln(w, "    start                      Start sgx_agent")
+	fmt.Fprintln(w, "    status                     Show the status of sgx_agent")
+	fmt.Fprintln(w, "    stop                       Stop sgx_agent")
+	fmt.Fprintln(w, "    uninstall                  Uninstall sgx_agent")
+	fmt.Fprintln(w, "    version|-version|--version Show the version of sgx_agent")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Tasks for setup:")
 	fmt.Fprintln(w, "    all                       Runs all setup tasks")
@@ -220,10 +220,10 @@ func (a *App) Run(args []string) error {
 		if err := a.startServer(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			return errors.Wrap(err, "app:Run() Error starting SGX service")
 		}
-	case "-h", "--help":
+	case "help", "-h", "--help":
 		a.printUsage()
 		return nil
 	case "start":
@@ -242,7 +242,7 @@ func (a *App) Run(args []string) error {
 		a.uninstall(purge)
 		log.Info("app:Run() Uninstalled SGX Service")
 		os.Exit(0)
-	case "version":
+	case "version", "--version", "-v":
 		fmt.Fprintf(a.consoleWriter(), "SGX Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
 	case "setup":
 		a.configureLogs(a.configuration().LogEnableStdout, true)
