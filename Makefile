@@ -16,7 +16,7 @@ installer: sgx_agent
 	makeself out/installer out/sgx_agent-$(VERSION).bin "SGX Agent $(VERSION)" ./install.sh
 
 sgx_agent:
-	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X github.com/intel-secl/intel-secl/v3/pkg/cms/version.BuildDate=$(BUILDDATE) -X github.com/intel-secl/intel-secl/v3/pkg/cms/version.Version=$(VERSION) -X github.com/intel-secl/intel-secl/v3/pkg/cms/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X github.com/intel-secl/sgx_agent/v3/version.BuildDate=$(BUILDDATE) -X github.com/intel-secl/sgx_agent/v3/version.Version=$(VERSION) -X github.com/intel-secl/sgx_agent/v3/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
 
 swagger-get:
 	wget https://github.com/go-swagger/go-swagger/releases/download/v0.25.0/swagger_linux_amd64 -O /usr/local/bin/swagger
