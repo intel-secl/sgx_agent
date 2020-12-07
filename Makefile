@@ -1,4 +1,3 @@
-SHELL := /bin/bash
 GITTAG := $(shell git describe --tags --abbrev=0 2> /dev/null)
 GITCOMMIT := $(shell git describe --always)
 VERSION := $(or ${GITTAG}, v0.0.0)
@@ -32,5 +31,4 @@ swagger: swagger-get swagger-doc
 
 clean:
 	rm -f cover.*
-	rm -f sgx_agent
 	rm -rf out/

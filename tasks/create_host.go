@@ -65,10 +65,16 @@ func (task CreateHost) Run(c setup.Context) error {
 
 	fmt.Fprintln(task.ConsoleWriter, "Current Hostname for agent is: ", task.hostName, ". Do you want to continue with this(Y/N)??")
 	var arg, name string
-	fmt.Scanln(&arg)
+	_, err = fmt.Scanln(&arg)
+	if err != nil {
+		return errors.Wrap(err, "tasks/create_host:Run() Error while reading user input")
+	}
 	if arg == "N" {
 		fmt.Fprintln(task.ConsoleWriter, "Please enter (hostname/IP address) you want to give")
-		fmt.Scanln(&name)
+		_, err = fmt.Scanln(&name)
+		if err != nil {
+			return errors.Wrap(err, "tasks/create_host:Run() Error while reading user input")
+		}
 		task.hostName = name
 	}
 	fmt.Fprintln(task.ConsoleWriter, "sgx_agent will be registered with hostname: ", task.hostName)
@@ -121,12 +127,13 @@ func (task CreateHost) Run(c setup.Context) error {
 	}
 
 	response, err := httpClient.Do(request)
+	if response != nil {
+		defer response.Body.Close()
+	}
 	if err != nil {
 		sLog.WithError(err).Error("tasks/create_Host:Run() Error making request")
 		return errors.Wrapf(err, "tasks/create_Host:Run() Error making request %s", url)
 	}
-
-	defer response.Body.Close()
 
 	if (response.StatusCode != http.StatusOK) && (response.StatusCode != http.StatusCreated) {
 		return errors.Errorf("tasks/create_Host: Run() Request made to %s returned status %d", url, response.StatusCode)
