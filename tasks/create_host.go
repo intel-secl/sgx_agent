@@ -128,7 +128,12 @@ func (task CreateHost) Run(c setup.Context) error {
 
 	response, err := httpClient.Do(request)
 	if response != nil {
-		defer response.Body.Close()
+		defer func() {
+			derr := response.Body.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Error closing response")
+			}
+		}()
 	}
 	if err != nil {
 		sLog.WithError(err).Error("tasks/create_Host:Run() Error making request")

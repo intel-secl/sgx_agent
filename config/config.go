@@ -75,8 +75,6 @@ func Global() *Configuration {
 	return global
 }
 
-var ErrNoConfigFile = errors.New("no config file")
-
 func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	log.Trace("config/config:SaveConfiguration() Entering")
 	defer log.Trace("config/config:SaveConfiguration() Leaving")
@@ -215,7 +213,7 @@ func (c *Configuration) Save() error {
 	defer log.Trace("config/config:Save() Leaving")
 
 	if c.configFile == "" {
-		return ErrNoConfigFile
+		return errors.New("no config file")
 	}
 	file, err := os.OpenFile(c.configFile, os.O_RDWR, 0)
 	if err != nil {
@@ -232,9 +230,9 @@ func (c *Configuration) Save() error {
 		}
 	}
 	defer func() {
-		err = file.Close()
-		if err != nil {
-			log.WithError(err).Error("Failed to flush config.yml")
+		derr := file.Close()
+		if derr != nil {
+			log.WithError(derr).Error("Failed to flush config.yml")
 		}
 	}()
 
@@ -247,19 +245,20 @@ func Load(path string) *Configuration {
 
 	var c Configuration
 	file, err := os.Open(path)
-	if err == nil {
+	if file != nil {
+		defer func() {
+			derr := file.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Failed to close config.yml")
+			}
+		}()
 		err = yaml.NewDecoder(file).Decode(&c)
 		if err != nil {
 			log.WithError(err).Error("Failed to decode config.yml contents")
 		}
+
 	} else {
 		c.LogLevel = log.InfoLevel
-		if file != nil {
-			err = file.Close()
-			if err != nil {
-				log.WithError(err).Error("Failed to close config.yml")
-			}
-		}
 	}
 
 	c.configFile = path

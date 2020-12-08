@@ -661,7 +661,12 @@ func fnGetJwtCerts() error {
 
 	res, err := httpClient.Do(req)
 	if res != nil {
-		defer res.Body.Close()
+		defer func() {
+			derr := res.Body.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Error closing response")
+			}
+		}()
 	}
 
 	if err != nil {
