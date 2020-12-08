@@ -221,7 +221,7 @@ func (a *App) Run(args []string) error {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(5 * time.Millisecond)
-			return errors.Wrap(err, "app:Run() Error starting SGX service")
+			return errors.Wrap(err, "app:Run() Error starting SGX Agent service")
 		}
 	case "help", "-h", "--help":
 		a.printUsage()
@@ -238,12 +238,15 @@ func (a *App) Run(args []string) error {
 	case "uninstall":
 		var purge bool
 		flag.CommandLine.BoolVar(&purge, "purge", false, "purge config when uninstalling")
-		flag.CommandLine.Parse(args[2:])
+		err := flag.CommandLine.Parse(args[2:])
+		if err != nil {
+			return err
+		}
 		a.uninstall(purge)
-		log.Info("app:Run() Uninstalled SGX Service")
+		log.Info("app:Run() Uninstalled SGX Agent Service")
 		os.Exit(0)
 	case "version", "--version", "-v":
-		fmt.Fprintf(a.consoleWriter(), "SGX Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
+		fmt.Fprintf(a.consoleWriter(), "SGX Agent Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
 	case "setup":
 		a.configureLogs(a.configuration().LogEnableStdout, true)
 		var context setup.Context
@@ -370,7 +373,7 @@ func (a *App) startServer() error {
 		return err
 	}
 	if err != nil {
-		log.WithError(err).Error("error came while installing sgx agent. Starting anyways.....")
+		log.WithError(err).Error("error while installing sgx agent. Starting anyways.....")
 	}
 
 	// Create Router, set routes
@@ -414,7 +417,10 @@ func (a *App) startServer() error {
 		// This routine pushes platform data to SCS. If the push fails, the SGX Agent retries 5 (RETRY_COUNT) times.
 		// If it still fails, SGX Agent sleeps till WAIT_TIME and tries 5 (RETRY_COUNT) times again.
 		// The SGX Agent continues this retry cycle until it succeeds at which time, it terminates.
-		proc.AddTask(false)
+		_, err = proc.AddTask(false)
+		if err != nil {
+			return err
+		}
 		go func() {
 			defer proc.TaskDone()
 			flag, err := resource.PushSGXData()
@@ -432,19 +438,28 @@ func (a *App) startServer() error {
 		}()
 	}
 
-	proc.AddTask(false)
+	_, err = proc.AddTask(false)
+	if err != nil {
+		return err
+	}
 	go func() {
 		defer proc.TaskDone()
-		proc.AddTask(false)
+		_, err = proc.AddTask(false)
+		if err != nil {
+			log.WithError(err).Info("Failed to add task")
+		}
 
 		// dispatch web server go routine
 		go func() {
 			defer proc.TaskDone()
-			tlsCert := config.Global().TLSCertFile
-			tlsKey := config.Global().TLSKeyFile
-			if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-				proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
-				proc.EndProcess()
+			conf := config.Global()
+			if conf != nil {
+				tlsCert := config.Global().TLSCertFile
+				tlsKey := config.Global().TLSKeyFile
+				if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+					proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
+					proc.EndProcess()
+				}
 			}
 		}()
 
@@ -453,13 +468,15 @@ func (a *App) startServer() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := h.Shutdown(ctx); err != nil {
-			slog.WithError(err).Info("Failed to gracefully shutdown webserver")
-			errors.Wrap(err, "app:startServer() Failed to gracefully shutdown webserver")
+			log.WithError(err).Info("Failed to gracefully shutdown webserver")
 		}
 		time.Sleep(time.Millisecond * 200)
 	}()
 
-	proc.WaitForQuitAndCleanup(10 * time.Second)
+	err = proc.WaitForQuitAndCleanup(10 * time.Second)
+	if err != nil {
+		log.WithError(err).Info("error while destroying the task and cleanup")
+	}
 	slog.Info(commLogMsg.ServiceStop)
 	return nil
 }
@@ -541,8 +558,11 @@ func (a *App) uninstall(purge bool) {
 	if err != nil {
 		log.WithError(err).Error("error removing home dir")
 	}
-	fmt.Fprintln(a.consoleWriter(), "SGX Service uninstalled")
-	a.stop()
+	fmt.Fprintln(a.consoleWriter(), "SGX Agent Service uninstalled")
+	err = a.stop()
+	if err != nil {
+		log.WithError(err).Error("error stopping service")
+	}
 }
 func removeService() {
 	log.Trace("app:removeService() Entering")
@@ -550,7 +570,7 @@ func removeService() {
 
 	_, _, err := e.RunCommandWithTimeout(constants.ServiceRemoveCmd, 5)
 	if err != nil {
-		fmt.Println("Could not remove SGX Service")
+		fmt.Println("Could not remove SGX Agent Service")
 		fmt.Println("Error : ", err)
 	}
 }
@@ -640,10 +660,14 @@ func fnGetJwtCerts() error {
 	}
 
 	res, err := httpClient.Do(req)
+	if res != nil {
+		defer res.Body.Close()
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "Could not retrieve jwt certificate")
 	}
-	defer res.Body.Close()
+
 	body, _ := ioutil.ReadAll(res.Body)
 	err = crypt.SavePemCertWithShortSha1FileName(body, constants.TrustedJWTSigningCertsDir)
 	if err != nil {

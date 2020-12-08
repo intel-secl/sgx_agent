@@ -291,7 +291,10 @@ func getPlatformInfo() errorHandlerFunc {
 			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
 		}
 
-		httpWriter.Write(js)
+		_, err = httpWriter.Write(js)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
 		slog.Info("Platform data retrieved by:", httpRequest.RemoteAddr)
 		return nil
 	}
@@ -348,14 +351,17 @@ func PushSGXData() (bool, error) {
 	req.Header.Set("Content-Type", "application/json")
 	err = utils.AddJWTToken(req)
 	if err != nil {
-		return false, errors.Wrap(err, "resource/sgx_atte_report_ops: PushSGXData() Failed to add JWT token to the authorization header")
+		return false, errors.Wrap(err, "PushSGXData: Failed to add JWT token to the authorization header")
 	}
 
 	resp, err := client.Do(req)
 	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		// fetch token and try again
 		utils.AasRWLock.Lock()
-		utils.AasClient.FetchAllTokens()
+		err = utils.AasClient.FetchAllTokens()
+		if err != nil {
+			return false, errors.Wrap(err, "PushSGXData: FetchAllTokens() Could not fetch token")
+		}
 		utils.AasRWLock.Unlock()
 		err = utils.AddJWTToken(req)
 		if err != nil {
@@ -400,7 +406,10 @@ func PushSGXData() (bool, error) {
 	}
 
 	if resp != nil && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			log.WithError(err).Error("Error closing response")
+		}
 		return false, errors.New("PushSGXData: Invalid status code received: " + strconv.Itoa(resp.StatusCode))
 	}
 
@@ -415,6 +424,9 @@ func PushSGXData() (bool, error) {
 	}
 
 	log.Debug("PushSGXData: Received SCS Response Data: ", pushResponse)
-	resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		log.WithError(err).Error("Error closing response")
+	}
 	return true, nil
 }

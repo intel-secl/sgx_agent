@@ -13,39 +13,48 @@ import (
 )
 
 func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File, err error) {
-	logFile, err = os.OpenFile(constants.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0664)
+	logFile, err = os.OpenFile(constants.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	os.Chmod(constants.LogFile, 0664)
-
-	httpLogFile, err = os.OpenFile(constants.HTTPLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	err = os.Chmod(constants.LogFile, 0600)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	os.Chmod(constants.HTTPLogFile, 0664)
 
-	secLogFile, err = os.OpenFile(constants.SecurityLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	httpLogFile, err = os.OpenFile(constants.HTTPLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	os.Chmod(constants.SecurityLogFile, 0664)
-
-	sgentUser, err := user.Lookup(constants.SGXAgentUserName)
+	err = os.Chmod(constants.HTTPLogFile, 0600)
 	if err != nil {
-		log.Errorf("Could not find user '%s'", constants.SGXAgentUserName)
 		return nil, nil, nil, err
 	}
 
-	uid, err := strconv.Atoi(sgentUser.Uid)
+	secLogFile, err = os.OpenFile(constants.SecurityLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Errorf("Could not parse sgentUser user uid '%s'", sgentUser.Uid)
+		return nil, nil, nil, err
+	}
+	err = os.Chmod(constants.SecurityLogFile, 0600)
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	gid, err := strconv.Atoi(sgentUser.Gid)
+	agentUser, err := user.Lookup(constants.SGXAgentUserName)
 	if err != nil {
-		log.Errorf("Could not parse sgentUser gid '%s'", sgentUser.Gid)
+		log.Errorf("Could not find sgx_agent user '%s'", constants.SGXAgentUserName)
+		return nil, nil, nil, err
+	}
+
+	uid, err := strconv.Atoi(agentUser.Uid)
+	if err != nil {
+		log.Errorf("Could not parse sgx_agent user user uid '%s'", agentUser.Uid)
+		return nil, nil, nil, err
+	}
+
+	gid, err := strconv.Atoi(agentUser.Gid)
+	if err != nil {
+		log.Errorf("Could not parse sgx_agent user gid '%s'", agentUser.Gid)
 		return nil, nil, nil, err
 	}
 
@@ -77,9 +86,24 @@ func main() {
 			LogWriter: os.Stdout,
 		}
 	} else {
-		defer l.Close()
-		defer h.Close()
-		defer s.Close()
+		defer func() {
+			err = l.Close()
+			if err != nil {
+				log.Error("failed to complete write on sgx_agent.log ", err)
+				os.Exit(1)
+			}
+			err = h.Close()
+			if err != nil {
+				log.Error("failed to complete write on http.log ", err)
+				os.Exit(1)
+			}
+			err = s.Close()
+			if err != nil {
+				log.Error("failed to complete write on sgx_agent-security.log ", err)
+				os.Exit(1)
+			}
+		}()
+
 		app = &App{
 			LogWriter:     l,
 			HTTPLogWriter: h,
