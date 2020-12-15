@@ -6,6 +6,7 @@
 package resource
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/handlers"
@@ -24,6 +25,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+)
+
+///MSR.IA32_Feature_Control register tells availability of SGX
+const (
+	IA32_FEATURE_CONTROL_REGISTER = 0x3A
+	MSR_DEVICE                    = "/dev/cpu/0/msr"
 )
 
 type SGX_Discovery_Data struct {
@@ -52,7 +59,6 @@ type PlatformResponse struct {
 }
 
 var (
-	flcEnabledCmd      = []string{"rdmsr", "-ax", "0x3A"} ///MSR.IA32_Feature_Control register tells availability of SGX
 	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", "/opt/pckData"}
 )
 
@@ -80,18 +86,13 @@ func Extract_SGXPlatformValues() error {
 	}
 	log.Info("SGX Extensions are enabled, hence proceeding further")
 	sgxData.Sgx_supported = sgxExtensionsEnabled
-	sgxEnabled, err := isSGXEnabled()
+	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled()
 	if err != nil {
-		log.WithError(err).Info("SGXEnabled can't be determined")
-		return err
+		return errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR")
 	}
 	sgxData.Sgx_enabled = sgxEnabled
-	flcEnabled, err := isFLCEnabled()
 	sgxData.Flc_enabled = flcEnabled
-	if err != nil {
-		log.WithError(err).Info("isFLCEnabled can't be determined")
-		return err
-	}
+
 	EPCStartAddress, EPCSize := epcMemoryDetails()
 	sgxData.Epc_startaddress = EPCStartAddress
 	sgxData.Epc_size = EPCSize
@@ -144,40 +145,56 @@ func Extract_SGXPlatformValues() error {
 	return nil
 }
 
-///This is done in TA but we might need to do here
-func isSGXEnabled() (bool, error) {
-	result, err := utils.ReadAndParseFromCommandLine(flcEnabledCmd)
+// Utility function that reads an unsigned long long from /dev/cpu/0/msr at offset
+// 'offset'
+func ReadMSR(offset int64) (uint64, error) {
+
+	msr, err := os.Open(MSR_DEVICE)
 	if err != nil {
-		return false, nil
-	}
-	sgxStatus := false
-	registerValue := result[0]
-	val, error := strconv.ParseInt(registerValue, 16, 64)
-	if error != nil {
-		return false, nil
+		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Error opening msr")
 	}
 
-	if (((val >> 18) & 1) != 0) && ((val)&1 != 0) { ///18th bit stands for IA32_FEATURE_CONTROL. 0th bit should be set to 1.
-		sgxStatus = true
+	_, err = msr.Seek(offset, 0)
+	if err != nil {
+		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Could not seek to location %x", offset)
 	}
-	return sgxStatus, err
+
+	results := make([]byte, 8)
+	len, err := msr.Read(results)
+	if err != nil {
+		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): There was an error reading msr at offset %x", offset)
+	}
+	if len < 8 {
+		return 0, errors.New("sgx_detection:ReadMSR(): Reading the msr returned the incorrect length")
+	}
+
+	err = msr.Close()
+	if err != nil {
+		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Error while closing msr device file")
+	}
+
+	return binary.LittleEndian.Uint64(results), nil
 }
 
-func isFLCEnabled() (bool, error) {
-	result, err := utils.ReadAndParseFromCommandLine(flcEnabledCmd)
+func isSGXAndFLCEnabled() (sgxEnabled bool, flcEnabled bool, err error) {
+	sgxEnabled = false
+	flcEnabled = false
+	sgxBits, err := ReadMSR(IA32_FEATURE_CONTROL_REGISTER)
 	if err != nil {
-		return false, nil
+		return sgxEnabled, flcEnabled, errors.Wrap(err, "Error while reading MSR")
 	}
-	sgxStatus := false
-	registerValue := result[0]
-	val, error := strconv.ParseInt(registerValue, 16, 64)
-	if error != nil {
-		return false, nil
+
+	// check if SGX is enabled or not
+	if (sgxBits&(1<<18) != 0) && (sgxBits&(1<<0) != 0) {
+		sgxEnabled = true
 	}
-	if (((val >> 17) & 1) != 0) && ((val)&1 != 0) { ///17th bit stands for IA32_FEATURE_CONTROL. 0th bit should be ste to 1.
-		sgxStatus = true
+
+	// check if FLC is enabled or not
+	if (sgxBits&(1<<17) != 0) && (sgxBits&(1<<0) != 0) {
+		flcEnabled = true
 	}
-	return sgxStatus, err
+
+	return sgxEnabled, flcEnabled, nil
 }
 
 func cpuid_low(arg1, arg2 uint32) (eax, ebx, ecx, edx uint32)
@@ -290,7 +307,6 @@ func getPlatformInfo() errorHandlerFunc {
 			log.Debug("Marshalling unsuccessful")
 			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
 		}
-
 		_, err = httpWriter.Write(js)
 		if err != nil {
 			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}

@@ -9,10 +9,6 @@ MP_RPM_VER=1.9.100.3-1
 
 install_sgx_components()
 {
-	#install msr-tools
-	if [ ! -f /usr/sbin/rdmsr ]; then
-		dnf localinstall -y https://dl.fedoraproject.org/pub/fedora/linux/releases/32/Everything/x86_64/os/Packages/m/msr-tools-1.3-13.fc32.x86_64.rpm
-	fi
 	rm -rf $GIT_CLONE_PATH
 
 	echo "Please provide patch file path"
