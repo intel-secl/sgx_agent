@@ -58,7 +58,6 @@ type Configuration struct {
 
 	TrustedRootCA *x509.Certificate
 
-	SGXAgentMode string
 	WaitTime     int
 	RetryCount   int
 }
@@ -123,7 +122,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && sgxHVSBaseUrl != "" {
 		conf.SGXHVSBaseUrl = sgxHVSBaseUrl
 	} else if conf.SGXHVSBaseUrl == "" {
-		log.Error("SHVS_BASE_URL is not defined in environment")
+		log.Info("SHVS_BASE_URL is not defined in environment. ")
 	}
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
@@ -178,10 +177,8 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 
 	sgx_agent_mode, err := c.GetenvString("SGX_AGENT_MODE", "SGX Agent Mode")
 	if err == nil && sgx_agent_mode != "" {
-		conf.SGXAgentMode = sgx_agent_mode
-	} else {
-		conf.SGXAgentMode = constants.DefaultSgxAgentMode
-	}
+		log.Warn("SGX_AGENT_MODE is deprecated. Ignoring...")
+	} 
 
 	waittime, err := c.GetenvInt("WAIT_TIME", "time between each retries to PCS")
 	if err == nil {

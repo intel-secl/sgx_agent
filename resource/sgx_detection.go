@@ -292,12 +292,6 @@ func getPlatformInfo() errorHandlerFunc {
 			return errors.Wrap(errors.New("getPlatformInfo: Configuration pointer is null"), "Config error")
 		}
 
-		if conf.SGXAgentMode == constants.RegistrationMode {
-			httpWriter.WriteHeader(http.StatusNotImplemented)
-			log.Debug("getPlatformInfo: SGX Agent is in Registration mode. Returning 501 response.")
-			return &resourceError{Message: err.Error(), StatusCode: http.StatusNotImplemented}
-		}
-
 		res := PlatformResponse{SGXData: sgxData, PData: platformData}
 
 		httpWriter.Header().Set("Content-Type", "application/json")

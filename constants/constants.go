@@ -46,8 +46,6 @@ const (
 	DefaultSGX_AgentTlsCn     = "SGX_AGENT TLS Certificate"
 	CertApproverGroupName     = "CertApprover"
 	DefaultRootCACommonName   = "SGX_AGENTCA"
-	RegistrationMode          = "Registration"
-	DefaultSgxAgentMode       = "Orchestration"
 	DefaultWaitTime           = 5
 	DefaultRetryCount         = 5
 )
