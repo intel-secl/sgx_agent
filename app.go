@@ -5,7 +5,6 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -13,7 +12,6 @@ import (
 	"fmt"
 	"intel/isecl/lib/common/v3/crypt"
 	e "intel/isecl/lib/common/v3/exec"
-	"intel/isecl/lib/common/v3/middleware"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/lib/common/v3/validation"
 	"intel/isecl/sgx_agent/v3/config"
@@ -23,11 +21,9 @@ import (
 	"intel/isecl/sgx_agent/v3/version"
 	"io"
 	"io/ioutil"
-	stdlog "log"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"os/user"
 	"strconv"
 
@@ -35,15 +31,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
 	commLog "intel/isecl/lib/common/v3/log"
 	commLogMsg "intel/isecl/lib/common/v3/log/message"
 	commLogInt "intel/isecl/lib/common/v3/log/setup"
 	cos "intel/isecl/lib/common/v3/os"
-	"intel/isecl/lib/common/v3/proc"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -217,7 +210,7 @@ func (a *App) Run(args []string) error {
 		os.Exit(1)
 	case "run":
 		a.configureLogs(a.configuration().LogEnableStdout, true)
-		if err := a.startServer(); err != nil {
+		if err := a.startAgent(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(5 * time.Millisecond)
@@ -360,98 +353,19 @@ func (a *App) Run(args []string) error {
 	return nil
 }
 
-func (a *App) startServer() error {
-	log.Info("app:startServer() Entering")
-	defer log.Info("app:startServer() Leaving")
+func (a *App) startAgent() error {
+	log.Info("app:startAgent() Entering")
+	defer log.Info("app:startAgent() Leaving")
 
-	c := a.configuration()
-	log.Info("Starting SGX Agent server")
+	log.Info("Starting SGX Agent...")
 
 	err := resource.Extract_SGXPlatformValues()
 	if err != nil {
 		log.WithError(err).Error("Unable to extract SGX Platform Values. Terminating...")
 		return err
 	}
-	if err != nil {
-		log.WithError(err).Error("error while installing sgx agent. Starting anyways.....")
-	}
-
-	// Create Router, set routes
-	r := mux.NewRouter()
-	r.SkipClean(true)
-
-	sr := r.PathPrefix("/sgx_agent/v1/").Subrouter()
-	var cacheTime, _ = time.ParseDuration(constants.JWTCertsCacheTime)
-	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, cacheTime))
-	func(setters ...func(*mux.Router)) {
-		for _, setter := range setters {
-			setter(sr)
-		}
-	}(resource.ProvidePlatformInfo) ///one API of resource will be called here. The API which SGX-Agent exposes will come here.
-
-	tlsconfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256},
-	}
-	// Setup signal handlers to gracefully handle termination
-	stop := make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	httpLog := stdlog.New(a.httpLogWriter(), "", 0)
-	h := &http.Server{
-		Addr:              fmt.Sprintf(":%d", c.Port),
-		Handler:           handlers.RecoveryHandler(handlers.RecoveryLogger(httpLog), handlers.PrintRecoveryStack(true))(handlers.CombinedLoggingHandler(a.httpLogWriter(), r)),
-		ErrorLog:          httpLog,
-		TLSConfig:         tlsconfig,
-		ReadTimeout:       c.ReadTimeout,
-		ReadHeaderTimeout: c.ReadHeaderTimeout,
-		WriteTimeout:      c.WriteTimeout,
-		IdleTimeout:       c.IdleTimeout,
-		MaxHeaderBytes:    c.MaxHeaderBytes,
-	}
 
 
-	_, err = proc.AddTask(false)
-	if err != nil {
-		return err
-	}
-	go func() {
-		defer proc.TaskDone()
-		_, err = proc.AddTask(false)
-		if err != nil {
-			log.WithError(err).Info("Failed to add task")
-		}
-
-		// dispatch web server go routine
-		go func() {
-			defer proc.TaskDone()
-			conf := config.Global()
-			if conf != nil {
-				tlsCert := config.Global().TLSCertFile
-				tlsKey := config.Global().TLSKeyFile
-				if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-					proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
-					proc.EndProcess()
-				}
-			}
-		}()
-
-		slog.Info(commLogMsg.ServiceStart)
-		<-proc.QuitChan
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := h.Shutdown(ctx); err != nil {
-			log.WithError(err).Info("Failed to gracefully shutdown webserver")
-		}
-		time.Sleep(time.Millisecond * 200)
-	}()
-
-	err = proc.WaitForQuitAndCleanup(10 * time.Second)
-	if err != nil {
-		log.WithError(err).Info("error while destroying the task and cleanup")
-	}
 	slog.Info(commLogMsg.ServiceStop)
 	return nil
 }
