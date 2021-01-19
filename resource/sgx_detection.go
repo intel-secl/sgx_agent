@@ -44,7 +44,7 @@ type SGX_Discovery_Data struct {
 	maxEnclaveSize64    int64
 }
 
-type Paltform_Data struct {
+type Platform_Data struct {
 	Encrypted_PPID string `json:"enc-ppid"`
 	Pce_id         string `json:"pceid"`
 	Cpu_svn        string `json:"cpusvn"`
@@ -55,7 +55,7 @@ type Paltform_Data struct {
 
 type PlatformResponse struct {
 	SGXData SGX_Discovery_Data `json:"sgx-data"`
-	PData   Paltform_Data      `json:"sgx-platform-data"`
+	PData   Platform_Data      `json:"sgx-platform-data"`
 }
 
 var (
@@ -68,7 +68,7 @@ type SCSPushResponse struct {
 }
 
 var sgxData SGX_Discovery_Data
-var platformData Paltform_Data
+var platformData Platform_Data
 
 func ProvidePlatformInfo(router *mux.Router) {
 	log.Trace("resource/sgx_detection:ProvidePlatformInfo() Entering")

@@ -175,12 +175,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CertSANList = constants.DefaultTlsSan
 	}
 
-	sgx_agent_mode, err := c.GetenvString("SGX_AGENT_MODE", "SGX Agent Mode")
-	if err == nil && sgx_agent_mode != "" {
-		log.Warn("SGX_AGENT_MODE is deprecated. Ignoring...")
-	} 
-
-	waittime, err := c.GetenvInt("WAIT_TIME", "time between each retries to PCS")
+	waittime, err := c.GetenvInt("WAIT_TIME", "1 time between each retries to PCS")
 	if err == nil {
 		if waittime > constants.DefaultWaitTime {
 			conf.WaitTime = waittime
