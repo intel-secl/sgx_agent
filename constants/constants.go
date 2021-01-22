@@ -48,4 +48,5 @@ const (
 	DefaultRootCACommonName   = "SGX_AGENTCA"
 	DefaultWaitTime           = 5
 	DefaultRetryCount         = 5
+	DefaultSHVSUpdateInterval = 120
 )

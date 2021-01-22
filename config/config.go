@@ -60,6 +60,7 @@ type Configuration struct {
 
 	WaitTime     int
 	RetryCount   int
+	SHVSUpdateInterval int
 }
 
 var global *Configuration
@@ -195,6 +196,18 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		}
 	} else {
 		conf.RetryCount = constants.DefaultRetryCount
+	}
+
+	shvsUpdateInterval, err := c.GetenvInt("SHVS_UPDATE_INTERVAL", "SHVS update interval in minutes")
+	if err == nil {
+		if shvsUpdateInterval > 0 && shvsUpdateInterval <= constants.DefaultSHVSUpdateInterval {
+			conf.SHVSUpdateInterval = shvsUpdateInterval
+			log.Warn("SHVS Update interval is out of range 1 < SHVSUpdateInterval < 120 . Using default value of 120 minutes")
+		} else {
+			conf.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
+		}
+	} else {
+		conf.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
 	}
 
 	return conf.Save()
