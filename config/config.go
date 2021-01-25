@@ -202,7 +202,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil {
 		if shvsUpdateInterval > 0 && shvsUpdateInterval <= constants.DefaultSHVSUpdateInterval {
 			conf.SHVSUpdateInterval = shvsUpdateInterval
-			log.Warn("SHVS Update interval is out of range 1 < SHVSUpdateInterval < 120 . Using default value of 120 minutes")
+			log.Info("SHVS Update interval is out of range 1 < SHVSUpdateInterval < 120 . Using default value of 120 minutes")
 		} else {
 			conf.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
 		}
