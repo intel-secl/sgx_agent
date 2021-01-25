@@ -17,7 +17,6 @@ import (
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/resource"
-	"intel/isecl/sgx_agent/v3/tasks"
 	"intel/isecl/sgx_agent/v3/version"
 	"io"
 	"io/ioutil"
@@ -57,7 +56,7 @@ type App struct {
 }
 
 func (a *App) printUsage() {
-	w := a.consoleWriter()
+	w := a.consoleWriter()	
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    sgx_agent <command> [arguments]")
@@ -266,7 +265,6 @@ func (a *App) Run(args []string) error {
 			os.Exit(1)
 		}
 		task := strings.ToLower(args[2])
-		flags := args[3:]
 
 		setupRunner := &setup.Runner{
 			Tasks: []setup.Task{
@@ -291,16 +289,6 @@ func (a *App) Run(args []string) error {
 					CertType:      "TLS",
 					CaCertsDir:    constants.TrustedCAsStoreDir,
 					BearerToken:   "",
-					ConsoleWriter: os.Stdout,
-				},
-				tasks.Server{
-					Flags:         flags,
-					Config:        a.configuration(),
-					ConsoleWriter: os.Stdout,
-				},
-				tasks.CreateHost{
-					Flags:         flags,
-					Config:        a.configuration(),
 					ConsoleWriter: os.Stdout,
 				},
 			},
@@ -354,18 +342,63 @@ func (a *App) Run(args []string) error {
 }
 
 func (a *App) startAgent() error {
-	log.Info("app:startAgent() Entering")
-	defer log.Info("app:startAgent() Leaving")
+	log.Trace("app:startAgent() Entering")
+	defer log.Trace("app:startAgent() Leaving")
 
 	log.Info("Starting SGX Agent...")
 
-	err := resource.Extract_SGXPlatformValues()
+	c := a.configuration()
+
+	err, sgx_discovery_data, platform_data := resource.Extract_SGXPlatformValues()
 	if err != nil {
 		log.WithError(err).Error("Unable to extract SGX Platform Values. Terminating...")
 		return err
 	}
 
+	log.Debug (sgx_discovery_data.Sgx_enabled)
+	log.Debug ("PDATA Encrypted PPID : " + platform_data.Qe_id)
+	
+	//Check SGX Supported && SGX Enabled && FLC Enabled.
+	if sgx_discovery_data.Sgx_supported != true {
+		err := errors.New("SGX is not supported.")
+		log.WithError(err).Error("SGX is not supported. Terminating...")
+		return err
+	} 
 
+	log.Debug ("SGX is supported.")
+	
+	if sgx_discovery_data.Sgx_enabled != true {
+		err := errors.New("SGX is not enabled.")
+		log.WithError(err).Error("SGX is not enabled. Terminating...")
+		return err
+	} 
+	log.Debug ("SGX is enabled.")
+	if sgx_discovery_data.Flc_enabled != true {
+		err := errors.New("FLC is not enabled.")
+		log.WithError(err).Error("FLC is not enabled. Terminating...")
+		return err
+	} 
+	log.Debug ("FLC is enabled.")
+	status, err := resource.PushSGXData(platform_data)
+	if status != true && err != nil {
+		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
+		return err
+	}
+
+	log.Debug ("SHVS Update Interval is : ", c.SHVSUpdateInterval)
+	//If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
+	if c.SGXHVSBaseUrl != "" {
+		log.Info ("SHVS URL is configured...")
+
+		//Start SHVS Update Beacon
+		log.Info ("SHVS update interval is ", c.SHVSUpdateInterval)
+		err = resource.UpdateSHVSPeriodically(sgx_discovery_data, platform_data, c.SHVSUpdateInterval)
+
+		if err != nil {
+			log.WithError(err).Error("Unable to update SHVS. Terminating...")
+			return err
+		}
+	}
 	slog.Info(commLogMsg.ServiceStop)
 	return nil
 }
