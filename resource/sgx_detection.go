@@ -67,6 +67,7 @@ type SCSPushResponse struct {
 	Message string `json:"Message"`
 }
 
+//Exported globally.
 var sgxData SGX_Discovery_Data
 var platformData Platform_Data
 
@@ -78,17 +79,20 @@ func ProvidePlatformInfo(router *mux.Router) {
 }
 
 ///For any demo function
-func Extract_SGXPlatformValues() error {
+func Extract_SGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
+	var sgx_enablement_info *SGX_Discovery_Data
+	var sgx_platform_data *Platform_Data
+
 	sgxExtensionsEnabled := isCPUSupportsSGXExtensions()
 	if !sgxExtensionsEnabled {
 		log.Info("SGX Extensions aren't enabled. Not proceeding.")
-		return nil
+		return nil, nil, nil
 	}
 	log.Info("SGX Extensions are enabled, hence proceeding further")
 	sgxData.Sgx_supported = sgxExtensionsEnabled
 	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled()
 	if err != nil {
-		return errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR")
+		return errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR"), nil, nil
 	}
 	sgxData.Sgx_enabled = sgxEnabled
 	sgxData.Flc_enabled = flcEnabled
@@ -111,6 +115,9 @@ func Extract_SGXPlatformValues() error {
 	log.Debug("SGXLevel Supported: ", sgxValue)
 	log.Debug("Enclave size when CPU is not in 64 bit mode: ", maxEnclaveSizeNot64Val)
 	log.Debug("Enclave size when CPU is in 64 bit mode: ", maxEnclaveSize64Val)
+
+	sgx_enablement_info = &sgxData
+
 	if sgxEnabled && flcEnabled {
 		log.Info("sgx and flc is enabled. Hence running PCKIDRetrieval tool")
 		fileContents, err := writePCKDetails()
@@ -132,17 +139,18 @@ func Extract_SGXPlatformValues() error {
 				log.Debug("Manifest exists. This is a multi-package platform")
 				platformData.Manifest = s[5]
 			}
-
+			//FIXME : Local Copy 
+			sgx_platform_data = &platformData
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
-			return err
+			return err, nil , nil
 		}
 	} else {
 		log.Info("sgx and flc are not enabled. Hence not running PCKIDRetrieval tool")
 		err := errors.New("unsupported")
-		return err
+		return err, nil, nil
 	}
-	return nil
+	return nil, sgx_enablement_info, sgx_platform_data
 }
 
 // Utility function that reads an unsigned long long from /dev/cpu/0/msr at offset
@@ -324,7 +332,7 @@ func convertToMB(b uint32) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func PushSGXData() (bool, error) {
+func PushSGXData(pdata *Platform_Data) (bool, error) {
 	log.Trace("resource/sgx_detection.go: PushSGXData() Entering")
 	defer log.Trace("resource/sgx_detection.go: PushSGXData() Leaving")
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
@@ -339,16 +347,20 @@ func PushSGXData() (bool, error) {
 
 	pushUrl := conf.ScsBaseUrl + "/platforminfo/push"
 	log.Debug("PushSGXData: URL: ", pushUrl)
+	log.Debug("qe_id",    pdata.Qe_id)
+
 
 	requestStr := map[string]string{
-		"enc_ppid": platformData.Encrypted_PPID,
-		"cpu_svn":  platformData.Cpu_svn,
-		"pce_svn":  platformData.Pce_svn,
-		"pce_id":   platformData.Pce_id,
-		"qe_id":    platformData.Qe_id,
-		"manifest": platformData.Manifest}
+		"enc_ppid": pdata.Encrypted_PPID,
+		"cpu_svn":  pdata.Cpu_svn,
+		"pce_svn":  pdata.Pce_svn,
+		"pce_id":   pdata.Pce_id,
+		"qe_id":    pdata.Qe_id,
+		"manifest": pdata.Manifest}
 
 	reqBytes, err := json.Marshal(requestStr)
+	log.Debug ("Request JSON length : " , reqBytes)
+
 	if err != nil {
 		return false, errors.Wrap(err, "PushSGXData: Marshal error:"+err.Error())
 	}
@@ -440,3 +452,4 @@ func PushSGXData() (bool, error) {
 	}
 	return true, nil
 }
+
