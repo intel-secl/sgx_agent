@@ -347,8 +347,6 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 
 	pushUrl := conf.ScsBaseUrl + "/platforminfo/push"
 	log.Debug("PushSGXData: URL: ", pushUrl)
-	log.Debug("qe_id",    pdata.Qe_id)
-
 
 	requestStr := map[string]string{
 		"enc_ppid": pdata.Encrypted_PPID,
@@ -359,7 +357,6 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 		"manifest": pdata.Manifest}
 
 	reqBytes, err := json.Marshal(requestStr)
-	log.Debug ("Request JSON length : " , reqBytes)
 
 	if err != nil {
 		return false, errors.Wrap(err, "PushSGXData: Marshal error:"+err.Error())

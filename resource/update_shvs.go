@@ -12,12 +12,12 @@ import (
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
 
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"encoding/json"
-	"bytes"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,37 +25,29 @@ var (
 	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
 )
 
+// Updates SHVS periodically. If an error occurs, error is logged 
+// and wait for the next update.
 func UpdateSHVSPeriodically (sgxdiscovery *SGX_Discovery_Data, platform_data *Platform_Data, period int) error {
-	//First Update
-	tcbstatus , err := GetTCBStatus(platform_data.Qe_id)
-	if err != nil {
-		log.WithError(err).Error("Unable to get TCB Status from SCS.")
-	} else {
-		tcbUptoDate, _ := strconv.ParseBool(tcbstatus)
-		err = PushHostSGXDiscovery(sgxdiscovery, tcbUptoDate)
-		if err != nil {
-			log.WithError(err).Error("Unable to update SHVS.")
-		}
-	}
-
-	//Subsequent Updates
+	// Infinitely update SHVS.
 	for {
-		//Sleep here on a timer.
-		//FIXME : Better message
-		log.Infof ("Waiting for %v minutes until next update.", period)
-		time.Sleep(time.Duration(period) * time.Minute)
-		
 		tcbstatus , err := GetTCBStatus(platform_data.Qe_id)
 		if err != nil {
+			// Log error . But don't throw it.
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
 		} else {
 			tcbUptoDate, _ := strconv.ParseBool(tcbstatus)
 			err = PushHostSGXDiscovery(sgxdiscovery, tcbUptoDate)
 			if err != nil {
+				// Log error . But don't throw it.
 				log.WithError(err).Error("Unable to update SHVS.")
 			}
 		}
+
+		//Sleep here on a timer.
+		log.Infof ("Waiting for %v minutes until next update.", period)
+		time.Sleep(time.Duration(period) * time.Minute)
 	}
+
 	return nil
 }
 
@@ -72,6 +64,7 @@ type SGXHostInfo struct{
 	TcbUptodate    bool      `json:"tcb_upToDate"`
 }
 
+// Wrapper over PushHostSGXDiscovery . Retries in case of error till we succeed.
 func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
 	conf := config.Global()
 	if conf == nil {
@@ -101,12 +94,10 @@ func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tc
 	return err
 }
 
-
+//Update SHVS With SGX Discovery Data and TCB Status.
 func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
 	log.Trace("resource/UpdateHostSGXDiscovery Entering")
 	defer log.Trace("resource/UpdateHostSGXDiscovery Leaving")
-
-
 
 	conf := config.Global()
 	if conf == nil {
@@ -114,11 +105,12 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 	}
 
 	api_endpoint := conf.SGXHVSBaseUrl + "/hosts"
-	log.Debug ("Updating SGX Discovery data to ", api_endpoint)
+	log.Debug ("Updating SGX Discovery data to SHVS at ", api_endpoint)
+
 	//Hardware UUID
 	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
 	if err != nil {
-		return errors.Wrap(err, "UpdateHostSGXDiscovery  - Could not parse hardware UUID")
+		return errors.Wrap(err, "UpdateHostSGXDiscovery  - Could not parse hardware UUID.")
 	}
 	hardwareUUID := ""
 	for i := range result {
@@ -129,7 +121,7 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 	//Get Host Name
 	hostName, err := utils.GetLocalHostname()
 	if err != nil {
-		return errors.Wrap(err, "UpdateHostSGXDiscovery - Error while getting Local hostName address")
+		return errors.Wrap(err, "UpdateHostSGXDiscovery - Error while getting hostname.")
 	}
 
 	requestData := SGXHostInfo{
@@ -148,7 +140,6 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 		return errors.Wrap(err, "UpdateHostSGXDiscovery: struct to json marshalling failed")
 	}
 
-	//FIXME : Check for URL
 	request, _ := http.NewRequest("POST", api_endpoint, bytes.NewBuffer(reqBytes))
 	request.Header.Set("Content-Type", "application/json")
 	err = utils.AddJWTToken(request)
@@ -161,8 +152,6 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 		log.WithError(err).Error("resource/update_shvs:UpdateHOSTSGXDiscovery() Error while creating http client")
 		return errors.Wrap(err, "resource/update_shvs:UpdateHOSTSGXDiscovery() Error while creating http client")
 	}
-
-	log.Debug ("Client Created.")
 
 	httpClient := &http.Client{
 		Transport: client.Transport,
@@ -183,7 +172,6 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 	}
 
 	log.Debug ("Request Completed : ", response.StatusCode)
-
 
 	if (response.StatusCode != http.StatusOK) && (response.StatusCode != http.StatusCreated) {
 		return errors.Errorf("resource/UpdateHostSGXDiscovery Request made to %s returned status %d", api_endpoint, response.StatusCode)

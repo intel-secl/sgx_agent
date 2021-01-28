@@ -358,7 +358,7 @@ func (a *App) startAgent() error {
 	log.Debug (sgx_discovery_data.Sgx_enabled)
 	log.Debug ("PDATA Encrypted PPID : " + platform_data.Qe_id)
 	
-	//Check SGX Supported && SGX Enabled && FLC Enabled.
+	//Check if SGX Supported && SGX Enabled && FLC Enabled.
 	if sgx_discovery_data.Sgx_supported != true {
 		err := errors.New("SGX is not supported.")
 		log.WithError(err).Error("SGX is not supported. Terminating...")
@@ -385,10 +385,10 @@ func (a *App) startAgent() error {
 		return err
 	}
 
-	log.Debug ("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 	//If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
 	if c.SGXHVSBaseUrl != "" {
 		log.Info ("SHVS URL is configured...")
+		log.Debug ("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
 		//Start SHVS Update Beacon
 		log.Info ("SHVS update interval is ", c.SHVSUpdateInterval)
