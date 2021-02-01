@@ -346,7 +346,7 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 		return false, errors.Wrap(errors.New("PushSGXData: Configuration pointer is null"), "Config error")
 	}
 
-	pushUrl := conf.ScsBaseUrl + "/platforminfo/push"
+	pushUrl := conf.ScsBaseUrl + "/certification/v1/platforms"
 	log.Debug("PushSGXData: URL: ", pushUrl)
 
 	requestStr := map[string]string{

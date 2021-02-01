@@ -65,7 +65,6 @@ func GetTCBStatus(qeid string) (string, error) {
 
 	SCSBaseURL := conf.ScsBaseUrl
 
-	//FIXME : Use the new api endpoint /tcbstatus
 	fetchURL := SCSBaseURL + "/platforminfo/tcbstatus"
 	request, _ := http.NewRequest("GET", fetchURL, nil)
 
