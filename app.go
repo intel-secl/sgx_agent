@@ -56,7 +56,7 @@ type App struct {
 }
 
 func (a *App) printUsage() {
-	w := a.consoleWriter()	
+	w := a.consoleWriter()
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    sgx_agent <command> [arguments]")
@@ -355,9 +355,6 @@ func (a *App) startAgent() error {
 		return err
 	}
 
-	log.Debug (sgx_discovery_data.Sgx_enabled)
-	log.Debug ("PDATA Encrypted PPID : " + platform_data.Qe_id)
-	
 	//Check if SGX Supported && SGX Enabled && FLC Enabled.
 	if sgx_discovery_data.Sgx_supported != true {
 		err := errors.New("SGX is not supported.")
@@ -391,7 +388,6 @@ func (a *App) startAgent() error {
 		log.Debug ("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
 		//Start SHVS Update Beacon
-		log.Info ("SHVS update interval is ", c.SHVSUpdateInterval)
 		err = resource.UpdateSHVSPeriodically(sgx_discovery_data, platform_data, c.SHVSUpdateInterval)
 
 		if err != nil {

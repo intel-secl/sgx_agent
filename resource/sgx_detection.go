@@ -139,7 +139,8 @@ func Extract_SGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 				log.Debug("Manifest exists. This is a multi-package platform")
 				platformData.Manifest = s[5]
 			}
-			//FIXME : Local Copy 
+			//FIXME : Remove global var usage. Instead let the function return sgx_platform_data
+			// and sgx_enablement_info. This would make unit testing easier.
 			sgx_platform_data = &platformData
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")

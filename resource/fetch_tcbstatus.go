@@ -51,8 +51,8 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 
 // Fetches TCB status from SCS using QEID.
 func GetTCBStatus(qeid string) (string, error) {
-	log.Trace("resource/fetch_tcbstatus:Run() Entering")
-	defer log.Trace("resource/fetch_tcbstatus:Run() Leaving")
+	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
+	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
 
 	log.Debug ("Fetching TCB Status from SCS...")
 
@@ -126,7 +126,6 @@ func GetTCBStatus(qeid string) (string, error) {
 		return status, errors.Wrap(err, "resource/fetch_tcbstatus: Run() Error while unmarshaling the response")
 	}
 
-	//status = respBody[0]["Status"]
 	status = fmt.Sprint(respBody["Status"])
 	log.Debug ("TCB Status : " , status)
 

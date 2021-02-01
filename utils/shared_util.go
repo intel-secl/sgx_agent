@@ -81,7 +81,6 @@ func AddJWTToken(req *http.Request) error {
 	AasRWLock.RUnlock()
 
 	// something wrong
-	log.Debug ("Finixhed calling GetUserToken..")
 	if err != nil {
 		log.Debug ("Error Calling GetUserToken : ", err)
 		// lock aas with w lock

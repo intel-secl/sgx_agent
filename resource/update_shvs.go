@@ -96,8 +96,8 @@ func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tc
 
 //Update SHVS With SGX Discovery Data and TCB Status.
 func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
-	log.Trace("resource/UpdateHostSGXDiscovery Entering")
-	defer log.Trace("resource/UpdateHostSGXDiscovery Leaving")
+	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
+	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
 
 	conf := config.Global()
 	if conf == nil {
