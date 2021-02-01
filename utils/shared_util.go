@@ -31,7 +31,7 @@ func init() {
 	if AasClient.HTTPClient == nil {
 		c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 		if err != nil {
-			log.Error (err)
+			log.Error(err)
 			return
 		}
 		AasClient.HTTPClient = c
@@ -69,7 +69,7 @@ func AddJWTToken(req *http.Request) error {
 		if AasClient.HTTPClient == nil {
 			c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 			if err != nil {
-				log.Error (err)
+				log.Error(err)
 				return errors.Wrap(err, "resource/utils:AddJWTToken() Error initializing http client")
 			}
 			AasClient.HTTPClient = c
@@ -82,7 +82,7 @@ func AddJWTToken(req *http.Request) error {
 
 	// something wrong
 	if err != nil {
-		log.Debug ("Error Calling GetUserToken : ", err)
+		log.Debug("Error Calling GetUserToken : ", err)
 		// lock aas with w lock
 		AasRWLock.Lock()
 		defer AasRWLock.Unlock()
@@ -90,11 +90,11 @@ func AddJWTToken(req *http.Request) error {
 		jwtToken, err = AasClient.GetUserToken(c.SGX_AgentUserName)
 		// it is not fixed
 		if err != nil {
-			log.Debug ("Error Calling GetUserToken again : ", err)
+			log.Debug("Error Calling GetUserToken again : ", err)
 			AasClient.AddUser(c.SGX_AgentUserName, c.SGX_AgentPassword)
-			log.Debug ("Adding user and password.")
+			log.Debug("Adding user and password.")
 			err = AasClient.FetchAllTokens()
-			if err != nil  {
+			if err != nil {
 				log.Warn("Error fetching all tokens...", err)
 			}
 			jwtToken, err = AasClient.GetUserToken(c.SGX_AgentUserName)

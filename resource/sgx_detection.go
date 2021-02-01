@@ -144,7 +144,7 @@ func Extract_SGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 			sgx_platform_data = &platformData
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
-			return err, nil , nil
+			return err, nil, nil
 		}
 	} else {
 		log.Info("sgx and flc are not enabled. Hence not running PCKIDRetrieval tool")
@@ -450,4 +450,3 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 	}
 	return true, nil
 }
-

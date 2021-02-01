@@ -25,12 +25,12 @@ var (
 	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
 )
 
-// Updates SHVS periodically. If an error occurs, error is logged 
+// Updates SHVS periodically. If an error occurs, error is logged
 // and wait for the next update.
-func UpdateSHVSPeriodically (sgxdiscovery *SGX_Discovery_Data, platform_data *Platform_Data, period int) error {
+func UpdateSHVSPeriodically(sgxdiscovery *SGX_Discovery_Data, platform_data *Platform_Data, period int) error {
 	// Infinitely update SHVS.
 	for {
-		tcbstatus , err := GetTCBStatus(platform_data.Qe_id)
+		tcbstatus, err := GetTCBStatus(platform_data.Qe_id)
 		if err != nil {
 			// Log error . But don't throw it.
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
@@ -44,7 +44,7 @@ func UpdateSHVSPeriodically (sgxdiscovery *SGX_Discovery_Data, platform_data *Pl
 		}
 
 		//Sleep here on a timer.
-		log.Infof ("Waiting for %v minutes until next update.", period)
+		log.Infof("Waiting for %v minutes until next update.", period)
 		time.Sleep(time.Duration(period) * time.Minute)
 	}
 
@@ -52,16 +52,16 @@ func UpdateSHVSPeriodically (sgxdiscovery *SGX_Discovery_Data, platform_data *Pl
 }
 
 //FIXME : Shouldn't be using a copy from SHVS
-type SGXHostInfo struct{
-	HostName         string `json:"host_name"`
-	Description      string `json:"description, omitempty"`
-	UUID             string `json:"uuid"`
-	SgxSupported   bool      `json:"sgx_supported"`
-	SgxEnabled     bool      `json:"sgx_enabled"`
-	FlcEnabled     bool      `json:"flc_enabled"`
-	EpcOffset          string    `json:"epc_offset"`
-	EpcSize        string    `json:"epc_size"`
-	TcbUptodate    bool      `json:"tcb_upToDate"`
+type SGXHostInfo struct {
+	HostName     string `json:"host_name"`
+	Description  string `json:"description, omitempty"`
+	UUID         string `json:"uuid"`
+	SgxSupported bool   `json:"sgx_supported"`
+	SgxEnabled   bool   `json:"sgx_enabled"`
+	FlcEnabled   bool   `json:"flc_enabled"`
+	EpcOffset    string `json:"epc_offset"`
+	EpcSize      string `json:"epc_size"`
+	TcbUptodate  bool   `json:"tcb_upToDate"`
 }
 
 // Wrapper over PushHostSGXDiscovery . Retries in case of error till we succeed.
@@ -71,14 +71,14 @@ func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tc
 		return errors.Wrap(errors.New("pushHostSGXDiscovery: Configuration pointer is null"), "Config error")
 	}
 
-	err := PushHostSGXDiscovery (sgxdiscovery, tcbstatus)
+	err := PushHostSGXDiscovery(sgxdiscovery, tcbstatus)
 
 	var time_bw_calls int = conf.WaitTime
 	var retries int = 0
-	if (err != nil) {
-		log.WithError (err)
+	if err != nil {
+		log.WithError(err)
 		for {
-			err = PushHostSGXDiscovery (sgxdiscovery, tcbstatus)
+			err = PushHostSGXDiscovery(sgxdiscovery, tcbstatus)
 			if err == nil {
 				return err //Exit out of this loop
 			}
@@ -105,7 +105,7 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 	}
 
 	api_endpoint := conf.SGXHVSBaseUrl + "/hosts"
-	log.Debug ("Updating SGX Discovery data to SHVS at ", api_endpoint)
+	log.Debug("Updating SGX Discovery data to SHVS at ", api_endpoint)
 
 	//Hardware UUID
 	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
@@ -125,16 +125,16 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 	}
 
 	requestData := SGXHostInfo{
-		HostName: hostName,
-		Description: "Demo",
-		UUID: hardwareUUID,
+		HostName:     hostName,
+		Description:  "Demo",
+		UUID:         hardwareUUID,
 		SgxSupported: sgxdiscovery.Sgx_supported,
-		SgxEnabled: sgxdiscovery.Sgx_enabled,
-		FlcEnabled: sgxdiscovery.Flc_enabled,
-		EpcOffset: sgxdiscovery.Epc_startaddress,
-		EpcSize: sgxdiscovery.Epc_size,
-		TcbUptodate: true}
-		
+		SgxEnabled:   sgxdiscovery.Sgx_enabled,
+		FlcEnabled:   sgxdiscovery.Flc_enabled,
+		EpcOffset:    sgxdiscovery.Epc_startaddress,
+		EpcSize:      sgxdiscovery.Epc_size,
+		TcbUptodate:  true}
+
 	reqBytes, err := json.Marshal(requestData)
 	if err != nil {
 		return errors.Wrap(err, "UpdateHostSGXDiscovery: struct to json marshalling failed")
@@ -171,7 +171,7 @@ func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) erro
 		return errors.Wrapf(err, "resource/UpdateHostSGXDiscovery Error making request %s", api_endpoint)
 	}
 
-	log.Debug ("Request Completed : ", response.StatusCode)
+	log.Debug("Request Completed : ", response.StatusCode)
 
 	if (response.StatusCode != http.StatusOK) && (response.StatusCode != http.StatusCreated) {
 		return errors.Errorf("resource/UpdateHostSGXDiscovery Request made to %s returned status %d", api_endpoint, response.StatusCode)

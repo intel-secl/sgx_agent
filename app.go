@@ -360,22 +360,22 @@ func (a *App) startAgent() error {
 		err := errors.New("SGX is not supported.")
 		log.WithError(err).Error("SGX is not supported. Terminating...")
 		return err
-	} 
+	}
 
-	log.Debug ("SGX is supported.")
-	
+	log.Debug("SGX is supported.")
+
 	if sgx_discovery_data.Sgx_enabled != true {
 		err := errors.New("SGX is not enabled.")
 		log.WithError(err).Error("SGX is not enabled. Terminating...")
 		return err
-	} 
-	log.Debug ("SGX is enabled.")
+	}
+	log.Debug("SGX is enabled.")
 	if sgx_discovery_data.Flc_enabled != true {
 		err := errors.New("FLC is not enabled.")
 		log.WithError(err).Error("FLC is not enabled. Terminating...")
 		return err
-	} 
-	log.Debug ("FLC is enabled.")
+	}
+	log.Debug("FLC is enabled.")
 	status, err := resource.PushSGXData(platform_data)
 	if status != true && err != nil {
 		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
@@ -384,8 +384,8 @@ func (a *App) startAgent() error {
 
 	//If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
 	if c.SGXHVSBaseUrl != "" {
-		log.Info ("SHVS URL is configured...")
-		log.Debug ("SHVS Update Interval is : ", c.SHVSUpdateInterval)
+		log.Info("SHVS URL is configured...")
+		log.Debug("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
 		//Start SHVS Update Beacon
 		err = resource.UpdateSHVSPeriodically(sgx_discovery_data, platform_data, c.SHVSUpdateInterval)

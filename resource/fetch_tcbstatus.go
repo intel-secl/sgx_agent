@@ -13,10 +13,10 @@ import (
 	"intel/isecl/sgx_agent/v3/utils"
 
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
-	"fmt"
 )
 
 // Wrapper over GetTCBStatus . Retries in case of error till we succeed.
@@ -26,14 +26,14 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 		return "", errors.Wrap(errors.New("GetTCBStatus: Configuration pointer is null"), "Config error")
 	}
 
-	tcbstatus, err := GetTCBStatus (qeid)
+	tcbstatus, err := GetTCBStatus(qeid)
 
 	var time_bw_calls int = conf.WaitTime
 	var retries int = 0
-	if (err != nil) {
-		log.WithError (err)
+	if err != nil {
+		log.WithError(err)
 		for {
-			tcbstatus, err = GetTCBStatus (qeid)
+			tcbstatus, err = GetTCBStatus(qeid)
 			if err == nil {
 				return tcbstatus, err
 			}
@@ -54,7 +54,7 @@ func GetTCBStatus(qeid string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
 
-	log.Debug ("Fetching TCB Status from SCS...")
+	log.Debug("Fetching TCB Status from SCS...")
 
 	status := ""
 
@@ -69,7 +69,7 @@ func GetTCBStatus(qeid string) (string, error) {
 	fetchURL := SCSBaseURL + "/platforminfo/tcbstatus"
 	request, _ := http.NewRequest("GET", fetchURL, nil)
 
-	log.Debug("SCS TCB Fetch URL : " ,fetchURL)
+	log.Debug("SCS TCB Fetch URL : ", fetchURL)
 
 	//Add parameter qeid
 	q := request.URL.Query()
@@ -87,7 +87,7 @@ func GetTCBStatus(qeid string) (string, error) {
 		return status, errors.Wrap(err, "resource/fetch_tcbstatus:Run() Error while creating http client")
 	}
 
-	log.Debug ("Client Created.")
+	log.Debug("Client Created.")
 
 	httpClient := &http.Client{
 		Transport: client.Transport,
@@ -107,7 +107,7 @@ func GetTCBStatus(qeid string) (string, error) {
 		return status, errors.Wrapf(err, "resource/fetch_tcbstatus:Run() Error making request %s", fetchURL)
 	}
 
-	log.Debug ("Request Completed : ", response.StatusCode)
+	log.Debug("Request Completed : ", response.StatusCode)
 
 	if (response.StatusCode != http.StatusOK) && (response.StatusCode != http.StatusCreated) {
 		return status, errors.Errorf("resource/fetch_tcbstatus: Run() Request made to %s returned status %d", fetchURL, response.StatusCode)
@@ -127,7 +127,7 @@ func GetTCBStatus(qeid string) (string, error) {
 	}
 
 	status = fmt.Sprint(respBody["Status"])
-	log.Debug ("TCB Status : " , status)
+	log.Debug("TCB Status : ", status)
 
 	return status, nil
 }
