@@ -78,8 +78,8 @@ func ProvidePlatformInfo(router *mux.Router) {
 	router.Handle("/host", handlers.ContentTypeHandler(getPlatformInfo(), "application/json")).Methods("GET")
 }
 
-///For any demo function
-func Extract_SGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
+
+func ExtractSGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 	var sgx_enablement_info *SGX_Discovery_Data
 	var sgx_platform_data *Platform_Data
 

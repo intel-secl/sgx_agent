@@ -349,14 +349,14 @@ func (a *App) startAgent() error {
 
 	c := a.configuration()
 
-	err, sgx_discovery_data, platform_data := resource.Extract_SGXPlatformValues()
+	err, sgxDiscoveryData, platformData := resource.ExtractSGXPlatformValues()
 	if err != nil {
 		log.WithError(err).Error("Unable to extract SGX Platform Values. Terminating...")
 		return err
 	}
 
 	//Check if SGX Supported && SGX Enabled && FLC Enabled.
-	if sgx_discovery_data.Sgx_supported != true {
+	if sgxDiscoveryData.Sgx_supported != true {
 		err := errors.New("SGX is not supported.")
 		log.WithError(err).Error("SGX is not supported. Terminating...")
 		return err
@@ -364,19 +364,19 @@ func (a *App) startAgent() error {
 
 	log.Debug("SGX is supported.")
 
-	if sgx_discovery_data.Sgx_enabled != true {
+	if sgxDiscoveryData.Sgx_enabled != true {
 		err := errors.New("SGX is not enabled.")
 		log.WithError(err).Error("SGX is not enabled. Terminating...")
 		return err
 	}
 	log.Debug("SGX is enabled.")
-	if sgx_discovery_data.Flc_enabled != true {
+	if sgxDiscoveryData.Flc_enabled != true {
 		err := errors.New("FLC is not enabled.")
 		log.WithError(err).Error("FLC is not enabled. Terminating...")
 		return err
 	}
 	log.Debug("FLC is enabled.")
-	status, err := resource.PushSGXData(platform_data)
+	status, err := resource.PushSGXData(platformData)
 	if status != true && err != nil {
 		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
 		return err
@@ -388,7 +388,7 @@ func (a *App) startAgent() error {
 		log.Debug("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
 		//Start SHVS Update Beacon
-		err = resource.UpdateSHVSPeriodically(sgx_discovery_data, platform_data, c.SHVSUpdateInterval)
+		err = resource.UpdateSHVSPeriodically(sgxDiscoveryData, platformData, c.SHVSUpdateInterval)
 
 		if err != nil {
 			log.WithError(err).Error("Unable to update SHVS. Terminating...")

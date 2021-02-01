@@ -36,7 +36,7 @@ func UpdateSHVSPeriodically(sgxdiscovery *SGX_Discovery_Data, platform_data *Pla
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
 		} else {
 			tcbUptoDate, _ := strconv.ParseBool(tcbstatus)
-			err = PushHostSGXDiscovery(sgxdiscovery, tcbUptoDate)
+			err = PushSGXEnablementData(sgxdiscovery, tcbUptoDate)
 			if err != nil {
 				// Log error . But don't throw it.
 				log.WithError(err).Error("Unable to update SHVS.")
@@ -65,20 +65,20 @@ type SGXHostInfo struct {
 }
 
 // Wrapper over PushHostSGXDiscovery . Retries in case of error till we succeed.
-func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
+func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
 	conf := config.Global()
 	if conf == nil {
 		return errors.Wrap(errors.New("pushHostSGXDiscovery: Configuration pointer is null"), "Config error")
 	}
 
-	err := PushHostSGXDiscovery(sgxdiscovery, tcbstatus)
+	err := PushSGXEnablementData(sgxdiscovery, tcbstatus)
 
 	var time_bw_calls int = conf.WaitTime
 	var retries int = 0
 	if err != nil {
 		log.WithError(err)
 		for {
-			err = PushHostSGXDiscovery(sgxdiscovery, tcbstatus)
+			err = PushSGXEnablementData(sgxdiscovery, tcbstatus)
 			if err == nil {
 				return err //Exit out of this loop
 			}
@@ -95,7 +95,7 @@ func PushHostSGXDiscoveryRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tc
 }
 
 //Update SHVS With SGX Discovery Data and TCB Status.
-func PushHostSGXDiscovery(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
+func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
 	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
 	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
 
