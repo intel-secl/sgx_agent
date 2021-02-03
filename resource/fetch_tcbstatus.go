@@ -65,7 +65,7 @@ func GetTCBStatus(qeid string) (string, error) {
 
 	SCSBaseURL := conf.ScsBaseUrl
 
-	fetchURL := SCSBaseURL + "/platforminfo/tcbstatus"
+	fetchURL := SCSBaseURL + "/certification/v1/tcbstatus"
 	request, _ := http.NewRequest("GET", fetchURL, nil)
 
 	log.Debug("SCS TCB Fetch URL : ", fetchURL)
