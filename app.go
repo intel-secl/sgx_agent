@@ -7,7 +7,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"flag"
 	"fmt"
 	"intel/isecl/lib/common/v3/crypt"
@@ -82,18 +81,6 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
 	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>                                : for CMS API url")
 	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that SGX-Agent is talking to the right CMS instance")
-	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    download_cert TLS     Generates Key pair and CSR, gets it signed from CMS")
-	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
-	fmt.Fprintln(w, "                          Required env variable if SGX_AGENT_NOSETUP=true or variable not set in config.yml:")
-	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that SGX-Agent is talking to the right CMS instance")
-	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>               : for CMS API url")
-	fmt.Fprintln(w, "                              - BEARER_TOKEN=<token>             : for authenticating with CMS")
-	fmt.Fprintln(w, "                              - SAN_LIST=<san>                   : list of hosts which needs access to service")
-	fmt.Fprintln(w, "                          Optional env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
-	fmt.Fprintln(w, "                              - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
 	fmt.Fprintln(w, "")
 }
 
@@ -248,7 +235,6 @@ func (a *App) Run(args []string) error {
 			os.Exit(1)
 		}
 		if args[2] != "download_ca_cert" &&
-			args[2] != "download_cert" &&
 			args[2] != "server" &&
 			args[2] != "all" {
 			a.printUsage()
@@ -274,22 +260,6 @@ func (a *App) Run(args []string) error {
 					CaCertDirPath:        constants.TrustedCAsStoreDir,
 					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
 					ConsoleWriter:        os.Stdout,
-				},
-				setup.Download_Cert{
-					Flags:              args,
-					CmsBaseURL:         a.Config.CMSBaseUrl,
-					KeyFile:            a.Config.TLSKeyFile,
-					CertFile:           a.Config.TLSCertFile,
-					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
-					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
-					Subject: pkix.Name{
-						CommonName: a.Config.Subject.TLSCertCommonName,
-					},
-					SanList:       a.Config.CertSANList,
-					CertType:      "TLS",
-					CaCertsDir:    constants.TrustedCAsStoreDir,
-					BearerToken:   "",
-					ConsoleWriter: os.Stdout,
 				},
 			},
 			AskInput: false,
@@ -326,17 +296,7 @@ func (a *App) Run(args []string) error {
 		if err != nil {
 			return errors.Wrap(err, "Error while changing file ownership")
 		}
-		if task == "download_cert" {
-			err = os.Chown(a.Config.TLSKeyFile, uid, gid)
-			if err != nil {
-				return errors.Wrap(err, "Error while changing ownership of TLS Key file")
-			}
 
-			err = os.Chown(a.Config.TLSCertFile, uid, gid)
-			if err != nil {
-				return errors.Wrap(err, "Error while changing ownership of TLS Cert file")
-			}
-		}
 	}
 	return nil
 }
@@ -522,9 +482,6 @@ func validateSetupArgs(cmd string, args []string) error {
 		return errors.New("Unknown command")
 
 	case "download_ca_cert":
-		return nil
-
-	case "download_cert":
 		return nil
 
 	case "server":
