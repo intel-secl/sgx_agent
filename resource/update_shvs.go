@@ -158,6 +158,24 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 	}
 
 	response, err := httpClient.Do(request)
+
+	if response != nil && response.StatusCode == http.StatusUnauthorized {
+		// Token could have expired. Fetch token and try again
+		utils.AasRWLock.Lock()
+		err = utils.AasClient.FetchAllTokens()
+		if err != nil {
+			return errors.Wrap(err, "PushSGXEnablementData: FetchAllTokens() Could not fetch token")
+		}
+		utils.AasRWLock.Unlock()
+		err = utils.AddJWTToken(request)
+		if err != nil {
+			return errors.Wrap(err, "PushSGXEnablementData: Failed to add JWT token to the authorization header")
+		}
+
+		request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+		response, err = httpClient.Do(request)
+	}
+
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()

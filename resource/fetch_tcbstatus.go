@@ -93,6 +93,23 @@ func GetTCBStatus(qeid string) (string, error) {
 	}
 
 	response, err := httpClient.Do(request)
+
+	if response != nil && response.StatusCode == http.StatusUnauthorized {
+		// Token could have expired. Fetch token and try again
+		utils.AasRWLock.Lock()
+		err = utils.AasClient.FetchAllTokens()
+		if err != nil {
+			return status, errors.Wrap(err, "GetTCBStatus: FetchAllTokens() Could not fetch token")
+		}
+		utils.AasRWLock.Unlock()
+		err = utils.AddJWTToken(request)
+		if err != nil {
+			return status, errors.Wrap(err, "GetTCBStatus: Failed to add JWT token to the authorization header")
+		}
+
+		response, err = httpClient.Do(request)
+	}
+
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()
