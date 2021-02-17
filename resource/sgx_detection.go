@@ -221,15 +221,15 @@ func epcMemoryDetails() (string, string) {
 	eax, ebx, ecx, edx := cpuid_low(18, 2)
 	log.Debugf("eax, ebx, ecx, edx: %08x-%08x-%08x-%08x", eax, ebx, ecx, edx)
 	//eax(31, 12) + ebx(51, 32)
-	range1 := (((1 << 20) - 1) & (eax >> (13 - 1)))
-	range2 := ((1 << 20) - 1) & (ebx >> (32 - 1))
-	startAddress := ((range2 & 0xff) | range1) << 12
+	range1 := uint64((((1 << 20) - 1) & (eax >> 12)))
+	range2 := uint64(((1 << 20) - 1) & ebx)
+	startAddress := (range2 << 32) | (range1 << 12)
 	log.Debugf("startaddress: %08x", startAddress)
 
 	//ecx(31, 12) + edx(51, 32)
-	range1 = ((1 << 20) - 1) & (ecx >> (13 - 1))
-	range2 = ((1 << 20) - 1) & (edx >> (32 - 1))
-	size := ((range2 & 0xff) | range1) << 12
+	range1 = uint64(((1 << 20) - 1) & (ecx >> 12))
+	range2 = uint64(((1 << 20) - 1) & edx)
+	size := (range2 << 32) | (range1 << 12)
 	sizeINMB := convertToMB(size)
 	startAddressinHex := "0x" + fmt.Sprintf("%08x", startAddress)
 	log.Debugf("size in decimal %20d  and mb %16q: ", size, sizeINMB)
@@ -319,7 +319,7 @@ func getPlatformInfo() errorHandlerFunc {
 	}
 }
 
-func convertToMB(b uint32) string {
+func convertToMB(b uint64) string {
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
