@@ -102,8 +102,10 @@ cd builds/skc-tools/sgx_agent/build_scripts
   logrus     github.com/sirupsen/logrus                   v1.4.0
   testify    github.com/stretchr/testify                  v1.3.0
   yaml.v2    gopkg.in/yaml.v2                             v2.4.0
-  clients    github.com/intel-secl/clients                v3.3.0
-  common     github.com/intel-secl/common         	  v3.3.0
+  yaml.v3    gopkg.in/yaml.v3                             v3.0.0-20210107192922-496545a6307b
+  jwt-go     github.com/Waterdrips/jwt-go                 v3.2.1-0.20200915121943-f6506928b72e
+  clients    github.com/intel-secl/clients                v3.5.0
+  common     github.com/intel-secl/common                 v3.5.0
 
 
 *Note: All dependencies are listed in go.mod*

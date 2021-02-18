@@ -25,24 +25,10 @@ type Update_Service_Config struct {
 }
 
 func (u Update_Service_Config) Run(c setup.Context) error {
-	log.Trace("tasks/server:Run() Entering")
-	defer log.Trace("tasks/server:Run() Leaving")
+	log.Trace("tasks/update_service_config:Run() Entering")
+	defer log.Trace("tasks/update_service_config:Run() Leaving")
 
 	fmt.Fprintln(u.ConsoleWriter, "Running update-service-config...")
-
-	sgxAgentUserName, err := c.GetenvString("SGX_AGENT_USERNAME", "SGX_AGENT Username")
-	if err == nil && sgxAgentUserName != "" {
-		u.Config.SGXAgentUserName = sgxAgentUserName
-	} else if u.Config.SGXAgentUserName == "" {
-		log.Error("SGX_AGENT_USERNAME is not defined in environment")
-	}
-
-	sgxAgentPassword, err := c.GetenvString("SGX_AGENT_PASSWORD", "SGX_AGENT Password")
-	if err == nil && sgxAgentPassword != "" {
-		u.Config.SGXAgentPassword = sgxAgentPassword
-	} else if u.Config.SGXAgentPassword == "" {
-		log.Error("SGX_AGENT_PASSWORD is not defined in environment")
-	}
 
 	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
 	if err == nil && sgxHVSBaseURL != "" {
@@ -58,12 +44,12 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		log.Error("SCS_BASE_URL  is not defined in environment")
 	}
 
-	aasAPIURL, err := c.GetenvString("AAS_API_URL", "AAS API URL")
-	if err == nil && aasAPIURL != "" {
-		u.Config.AuthServiceURL = aasAPIURL
-	} else if u.Config.AuthServiceURL == "" {
-		log.Error("AAS_API_URL is not defined in environment")
-		return errors.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
+	bearerToken, err := c.GetenvString("BEARER_TOKEN", "BEARER TOKEN")
+	if err == nil && bearerToken != "" {
+		u.Config.BearerToken = bearerToken
+	} else if u.Config.BearerToken == "" {
+		log.Error("BEARER_TOKEN is not defined in environment")
+		return errors.Wrap(errors.New("BEARER_TOKEN is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
 	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
@@ -115,7 +101,6 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
 	}
 
-
 	logMaxLen, err := c.GetenvInt("SGX_AGENT_LOG_MAX_LENGTH", "SGX Agent Log maximum length")
 	if err != nil || logMaxLen < constants.DefaultLogEntryMaxLength {
 		u.Config.LogMaxLength = constants.DefaultLogEntryMaxLength
@@ -131,15 +116,15 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.LogEnableStdout = true
 	}
 
-	err =u.Config.Save()
+	err = u.Config.Save()
 	if err != nil {
 		return errors.Wrap(err, "failed to save SGX Agent config")
 	}
 	return nil
 }
 
-func (s Update_Service_Config) Validate(c setup.Context) error {
-	log.Trace("tasks/server:Validate() Entering")
-	defer log.Trace("tasks/server:Validate() Leaving")
+func (u Update_Service_Config) Validate(c setup.Context) error {
+	log.Trace("tasks/update_service_config:Validate() Entering")
+	defer log.Trace("tasks/update_service_config:Validate() Leaving")
 	return nil
 }

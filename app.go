@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	e "intel/isecl/lib/common/v3/exec"
 	commLog "intel/isecl/lib/common/v3/log"
@@ -18,6 +19,7 @@ import (
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/resource"
 	"intel/isecl/sgx_agent/v3/tasks"
+	"intel/isecl/sgx_agent/v3/utils"
 	"intel/isecl/sgx_agent/v3/version"
 	"io"
 	"os"
@@ -46,6 +48,10 @@ type App struct {
 	SecLogWriter   io.Writer
 }
 
+var (
+	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
+)
+
 func (a *App) printUsage() {
 	w := a.consoleWriter()
 	fmt.Fprintln(w, "Usage:")
@@ -70,8 +76,6 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    update_service_config    Updates Service Configuration")
 	fmt.Fprintln(w, "                             Required env variables:")
-	fmt.Fprintln(w, "                                 - SGX_AGENT_USERNAME                               : SGX_AGENT Username")
-	fmt.Fprintln(w, "                                 - SGX_AGENT_PASSWORD                               : SGX_AGENT Password")
 	fmt.Fprintln(w, "                                 - SCS_BASE_URL                                     : SCS Base URL")
 	fmt.Fprintln(w, "                                 - SGX_AGENT_LOGLEVEL                               : SGX_AGENT Log Level")
 	fmt.Fprintln(w, "                                 - SGX_AGENT_LOG_MAX_LENGTH                         : SGX Agent Log maximum length")
@@ -80,7 +84,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                                 - WAIT_TIME                                        : Time between each retries to PCS")
 	fmt.Fprintln(w, "                                 - RETRY_COUNT                                      : Push Data Retry Count to SCS")
 	fmt.Fprintln(w, "                                 - SHVS_BASE_URL                                    : HVS Base URL")
-	fmt.Fprintln(w, "                                 - AAS_API_URL                                      : AAS API URL")
+	fmt.Fprintln(w, "                                 - BEARER_TOKEN                                     : BEARER TOKEN")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    download_ca_cert         Download CMS root CA certificate")
 	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads new root CA cert")
@@ -325,6 +329,21 @@ func (a *App) startAgent() error {
 		return err
 	}
 
+	// Get Hardware UUID
+	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
+	if err != nil {
+		return errors.Wrap(err, "Could not parse hardware UUID. Terminating...")
+	}
+	hardwareUUID := ""
+	for i := range result {
+		hardwareUUID = strings.TrimSpace(result[i])
+		_, err = uuid.Parse(hardwareUUID)
+		if err != nil {
+			return errors.Wrap(err, "Hardware UUID is not in UUID format. Terminating...")
+		}
+		break
+	}
+
 	// Check if SGX Supported && SGX Enabled && FLC Enabled.
 	if !sgxDiscoveryData.SgxSupported {
 		err := errors.New("SGX is not supported.")
@@ -347,7 +366,7 @@ func (a *App) startAgent() error {
 	}
 	log.Debug("FLC is enabled.")
 
-	status, err := resource.PushSGXData(platformData)
+	status, err := resource.PushSGXData(platformData, hardwareUUID)
 	if !status && err != nil {
 		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
 		return err
@@ -359,7 +378,7 @@ func (a *App) startAgent() error {
 		log.Debug("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
 		// Start SHVS Update Beacon
-		err = resource.UpdateSHVSPeriodically(sgxDiscoveryData, platformData, c.SHVSUpdateInterval)
+		err = resource.UpdateSHVSPeriodically(sgxDiscoveryData, platformData, hardwareUUID, c.SHVSUpdateInterval)
 
 		if err != nil {
 			log.WithError(err).Error("Unable to update SHVS. Terminating...")

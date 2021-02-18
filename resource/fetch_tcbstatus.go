@@ -16,7 +16,7 @@ import (
 	"net/http"
 )
 
-// GetTCBStatus Fetches TCB status from SCS using QEID.
+// GetTCBStatus Fetches TCB status from SCS using QEID and PCEID.
 func GetTCBStatus(qeId, pceId string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
@@ -37,15 +37,20 @@ func GetTCBStatus(qeId, pceId string) (string, error) {
 
 	log.Debug("SCS TCB Fetch URL : ", fetchURL)
 
-	// Add qeid query parameter for fetching tcb status
+	// Add qeid and pceid query parameter for fetching tcb status
 	q := request.URL.Query()
 	q.Add("qeid", qeId)
 	q.Add("pceid", pceId)
 	request.URL.RawQuery = q.Encode()
+	request.Header.Set("Authorization", "Bearer "+conf.BearerToken)
 
-	err := utils.AddJWTToken(request)
+	tokenExpired, err := utils.JwtHasExpired(conf.BearerToken)
 	if err != nil {
-		return status, errors.Wrap(err, "getTCBStatus: Failed to add JWT token to the authorization header")
+		slog.WithError(err).Error("resource/fetch_tcbstatus:GetTCBStatus() Error verifying token expiry")
+		return status, errors.Wrap(err, "resource/fetch_tcbstatus:GetTCBStatus() Error verifying token expiry")
+	}
+	if tokenExpired {
+		slog.Warn("resource/fetch_tcbstatus:GetTCBStatus() Token is about to expire within 7 days. Please refresh the token.")
 	}
 
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
@@ -61,23 +66,6 @@ func GetTCBStatus(qeId, pceId string) (string, error) {
 	}
 
 	response, err := httpClient.Do(request)
-
-	if response != nil && response.StatusCode == http.StatusUnauthorized {
-		// Token could have expired. Fetch token and try again
-		utils.AasRWLock.Lock()
-		err = utils.AasClient.FetchAllTokens()
-		if err != nil {
-			return status, errors.Wrap(err, "GetTCBStatus: FetchAllTokens() Could not fetch token")
-		}
-		utils.AasRWLock.Unlock()
-		err = utils.AddJWTToken(request)
-		if err != nil {
-			return status, errors.Wrap(err, "GetTCBStatus: Failed to add JWT token to the authorization header")
-		}
-
-		response, err = httpClient.Do(request)
-	}
-
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()

@@ -15,17 +15,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
-)
-
-var (
-	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
 )
 
 // UpdateSHVSPeriodically Updates SHVS periodically. If an error occurs,
 // error is logged and wait for the next update.
-func UpdateSHVSPeriodically(sgxDiscovery *SGXDiscoveryData, platformData *PlatformData, period int) error {
+func UpdateSHVSPeriodically(sgxDiscovery *SGXDiscoveryData, platformData *PlatformData, hardwareUUID string, period int) error {
 	// update SHVS as per configured timer.
 	for {
 		tcbStatus, err := GetTCBStatus(platformData.QeID, platformData.PceID)
@@ -34,7 +29,7 @@ func UpdateSHVSPeriodically(sgxDiscovery *SGXDiscoveryData, platformData *Platfo
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
 		} else {
 			tcbUptoDate, _ := strconv.ParseBool(tcbStatus)
-			err = PushSGXEnablementData(sgxDiscovery, tcbUptoDate)
+			err = PushSGXEnablementData(sgxDiscovery, hardwareUUID, tcbUptoDate)
 			if err != nil {
 				// Log error . But don't throw it.
 				log.WithError(err).Error("Unable to update SHVS.")
@@ -60,7 +55,7 @@ type SGXHostInfo struct {
 }
 
 // PushSGXEnablementData updates SHVS With SGX Discovery Data and TCB Status.
-func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, tcbStatus bool) error {
+func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, hardwareUUID string, tcbStatus bool) error {
 	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
 	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
 
@@ -72,17 +67,6 @@ func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, tcbStatus bool) error
 	apiEndPoint := conf.SGXHVSBaseURL + "/hosts"
 	log.Debug("Updating SGX Discovery data to SHVS at ", apiEndPoint)
 
-	// Get Hardware UUID
-	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
-	if err != nil {
-		return errors.Wrap(err, "UpdateHostSGXDiscovery  - Could not parse hardware UUID.")
-	}
-	hardwareUUID := ""
-	for i := range result {
-		hardwareUUID = strings.TrimSpace(result[i])
-		break
-	}
-
 	// Get Host Name
 	hostName, err := utils.GetLocalHostname()
 	if err != nil {
@@ -91,7 +75,6 @@ func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, tcbStatus bool) error
 
 	requestData := SGXHostInfo{
 		HostName:     hostName,
-		Description:  "Demo",
 		UUID:         hardwareUUID,
 		SgxSupported: sgxDiscovery.SgxSupported,
 		SgxEnabled:   sgxDiscovery.SgxEnabled,
@@ -107,9 +90,15 @@ func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, tcbStatus bool) error
 
 	request, _ := http.NewRequest("POST", apiEndPoint, bytes.NewBuffer(reqBytes))
 	request.Header.Set("Content-Type", "application/json")
-	err = utils.AddJWTToken(request)
+	request.Header.Set("Authorization", "Bearer "+conf.BearerToken)
+
+	tokenExpired, err := utils.JwtHasExpired(conf.BearerToken)
 	if err != nil {
-		return errors.Wrap(err, "UpdateHostSGXDiscovery: Failed to add JWT token to the authorization header")
+		slog.WithError(err).Error("resource/update_shvs:UpdateHOSTSGXDiscovery() Error verifying token expiry")
+		return errors.Wrap(err, "resource/update_shvs:UpdateHOSTSGXDiscovery() Error verifying token expiry")
+	}
+	if tokenExpired {
+		slog.Warn("resource/update_shvs:UpdateHOSTSGXDiscovery() Token is about to expire within 7 days. Please refresh the token.")
 	}
 
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
@@ -123,24 +112,6 @@ func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, tcbStatus bool) error
 	}
 
 	response, err := httpClient.Do(request)
-
-	if response != nil && response.StatusCode == http.StatusUnauthorized {
-		// Token could have expired. Fetch token and try again
-		utils.AasRWLock.Lock()
-		err = utils.AasClient.FetchAllTokens()
-		if err != nil {
-			return errors.Wrap(err, "PushSGXEnablementData: FetchAllTokens() Could not fetch token")
-		}
-		utils.AasRWLock.Unlock()
-		err = utils.AddJWTToken(request)
-		if err != nil {
-			return errors.Wrap(err, "PushSGXEnablementData: Failed to add JWT token to the authorization header")
-		}
-
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
-		response, err = httpClient.Do(request)
-	}
-
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()

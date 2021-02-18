@@ -277,7 +277,7 @@ func convertToMB(b uint64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func PushSGXData(pdata *PlatformData) (bool, error) {
+func PushSGXData(pdata *PlatformData, hardwareUUID string) (bool, error) {
 	log.Trace("resource/sgx_detection.go: PushSGXData() Entering")
 	defer log.Trace("resource/sgx_detection.go: PushSGXData() Leaving")
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
@@ -294,12 +294,13 @@ func PushSGXData(pdata *PlatformData) (bool, error) {
 	log.Debug("PushSGXData: URL: ", pushURL)
 
 	requestStr := map[string]string{
-		"enc_ppid": pdata.EncryptedPPID,
-		"cpu_svn":  pdata.CPUSvn,
-		"pce_svn":  pdata.PceSvn,
-		"pce_id":   pdata.PceID,
-		"qe_id":    pdata.QeID,
-		"manifest": pdata.Manifest}
+		"enc_ppid":      pdata.EncryptedPPID,
+		"cpu_svn":       pdata.CPUSvn,
+		"pce_svn":       pdata.PceSvn,
+		"pce_id":        pdata.PceID,
+		"qe_id":         pdata.QeID,
+		"manifest":      pdata.Manifest,
+		"hardware_uuid": hardwareUUID}
 
 	reqBytes, err := json.Marshal(requestStr)
 
@@ -313,32 +314,21 @@ func PushSGXData(pdata *PlatformData) (bool, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	err = utils.AddJWTToken(req)
+	req.Header.Set("Authorization", "Bearer "+conf.BearerToken)
+
+	tokenExpired, err := utils.JwtHasExpired(conf.BearerToken)
 	if err != nil {
-		return false, errors.Wrap(err, "PushSGXData: Failed to add JWT token to the authorization header")
+		slog.WithError(err).Error("PushSGXData: Error verifying token expiry")
+		return false, errors.Wrap(err, "PushSGXData: Error verifying token expiry")
 	}
+	if tokenExpired {
+		slog.Warn("PushSGXData: Token is about to expire within 7 days. Please refresh the token.")
+	}
+
+	var retries = 0
+	var timeBwCalls = conf.WaitTime
 
 	resp, err := client.Do(req)
-	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
-		// fetch token and try again
-		utils.AasRWLock.Lock()
-		err = utils.AasClient.FetchAllTokens()
-		if err != nil {
-			return false, errors.Wrap(err, "PushSGXData: FetchAllTokens() Could not fetch token")
-		}
-		utils.AasRWLock.Unlock()
-		err = utils.AddJWTToken(req)
-		if err != nil {
-			return false, errors.Wrap(err, "PushSGXData: Failed to add JWT token to the authorization header")
-		}
-
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
-		resp, err = client.Do(req)
-	}
-
-	var retries int = 0
-	var timeBwCalls int = conf.WaitTime
-
 	if err != nil || (resp != nil && resp.StatusCode >= http.StatusInternalServerError) {
 
 		for {

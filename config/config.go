@@ -5,7 +5,6 @@
 package config
 
 import (
-	"crypto/x509"
 	"errors"
 	"gopkg.in/yaml.v2"
 	"os"
@@ -35,22 +34,17 @@ type Configuration struct {
 	CACertValidity     int
 	TokenDurationMins  int
 
-	SGXAgentUserName string
-	SGXAgentPassword string
-	CMSBaseURL       string
-	AuthServiceURL   string
-	SGXHVSBaseURL    string
-	SVSBaseURL       string
-	ScsBaseURL       string
-	Subject          struct {
+	CMSBaseURL    string
+	SGXHVSBaseURL string
+	ScsBaseURL    string
+	Subject       struct {
 		TLSCertCommonName string
 	}
-	TLSKeyFile        string
-	TLSCertFile       string
-	CertSANList       string
+	TLSKeyFile  string
+	TLSCertFile string
+	CertSANList string
 
-	TrustedRootCA *x509.Certificate
-
+	BearerToken        string
 	WaitTime           int
 	RetryCount         int
 	SHVSUpdateInterval int
