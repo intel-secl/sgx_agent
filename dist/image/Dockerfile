@@ -24,4 +24,4 @@ RUN useradd -u 1001 --comment "SGX Agent Service" --home /opt/sgx_agent  --shell
 COPY out/sgx_agent /usr/bin/sgx_agent
 COPY dist/image/entrypoint.sh /entrypoint.sh
 RUN chmod 700 /entrypoint.sh
-ENTRYPOINT ["./entrypoint-sagent.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
