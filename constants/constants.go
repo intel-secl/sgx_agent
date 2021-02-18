@@ -18,14 +18,12 @@ const (
 	HTTPLogFile     = LogDir + "http.log"
 	ConfigFile      = "config.yml"
 
-	SerialNumberPath          = ConfigDir + "serial-number"
 	TokenSignKeysAndCertDir   = ConfigDir + "certs/tokensign/"
 	TokenSignCertFile         = TokenSignKeysAndCertDir + "jwtsigncert.pem"
 	TrustedJWTSigningCertsDir = ConfigDir + "certs/trustedjwt/"
 	TrustedCAsStoreDir        = ConfigDir + "certs/trustedca/"
 	DefaultTLSCertFile        = ConfigDir + "tls-cert.pem"
 	DefaultTLSKeyFile         = ConfigDir + "tls.key"
-	JWTCertsCacheTime         = "60m"
 	CmsTlsCertDigestEnv       = "CMS_TLS_CERT_SHA384"
 	SGXAgentLogLevel          = "SGX_AGENT_LOGLEVEL"
 	DefaultReadTimeout        = 30 * time.Second

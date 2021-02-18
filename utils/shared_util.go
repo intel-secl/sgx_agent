@@ -23,8 +23,6 @@ var (
 	AasRWLock = sync.RWMutex{}
 )
 
-var statusUpdateLock *sync.Mutex
-
 func init() {
 	AasRWLock.Lock()
 	defer AasRWLock.Unlock()

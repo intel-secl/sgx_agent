@@ -38,7 +38,7 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 				return tcbstatus, err
 			}
 
-			retries += 1
+			retries++
 			if retries >= conf.RetryCount {
 				log.Errorf("GetTCBStatus: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
 				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
@@ -70,7 +70,7 @@ func GetTCBStatus(qeid string) (string, error) {
 
 	log.Debug("SCS TCB Fetch URL : ", fetchURL)
 
-	//Add parameter qeid
+	// Add parameter qeid
 	q := request.URL.Query()
 	q.Add("qeid", qeid)
 	request.URL.RawQuery = q.Encode()
