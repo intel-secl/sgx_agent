@@ -44,7 +44,7 @@ func GetLocalIpAsBytes() ([]byte, error) {
 		return ipnet.IP[(len(ipnet.IP) - 4):len(ipnet.IP)], nil
 	}
 
-	return nil, errors.New("Could not collect local ip bytes")
+	return nil, errors.New("could not collect local ip bytes")
 }
 
 func getLocalIpAddr() (net.Addr, error) {
@@ -69,7 +69,7 @@ func getLocalIpAddr() (net.Addr, error) {
 	}
 
 	if addr == nil {
-		return nil, errors.New("Did not find the local ip address")
+		return nil, errors.New("did not find the local ip address")
 	}
 
 	return addr, nil

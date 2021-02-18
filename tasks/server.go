@@ -17,7 +17,6 @@ import (
 )
 
 var log = clog.GetDefaultLogger()
-var sLog = clog.GetSecurityLogger()
 
 type Server struct {
 	Flags         []string
@@ -89,7 +88,7 @@ func (s Server) Run(c setup.Context) error {
 
 	s.Config.LogEnableStdout = false
 	logEnableStdout, err := c.GetenvString("SGX_AGENT_ENABLE_CONSOLE_LOG", "SGX Agent Enable standard output")
-	if err != nil || len(logEnableStdout) == 0 {
+	if err != nil || logEnableStdout == "" {
 		s.Config.LogEnableStdout = false
 	} else {
 		s.Config.LogEnableStdout = true

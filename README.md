@@ -103,7 +103,7 @@ cd builds/skc-tools/sgx_agent/build_scripts
   errors     github.com/pkg/errors                        v0.9.1
   logrus     github.com/sirupsen/logrus                   v1.4.0
   testify    github.com/stretchr/testify                  v1.3.0
-  yaml.v2    gopkg.in/yaml.v2                             v2.2.2
+  yaml.v2    gopkg.in/yaml.v2                             v2.4.0
   clients    github.com/intel-secl/clients                v3.3.0
   common     github.com/intel-secl/common         	  v3.3.0
 

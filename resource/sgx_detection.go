@@ -27,7 +27,7 @@ import (
 	"time"
 )
 
-///MSR.IA32_Feature_Control register tells availability of SGX
+// MSR.IA32_Feature_Control register tells availability of SGX
 const (
 	IA32_FEATURE_CONTROL_REGISTER = 0x3A
 	MSR_DEVICE                    = "/dev/cpu/0/msr"
@@ -67,7 +67,6 @@ type SCSPushResponse struct {
 	Message string `json:"Message"`
 }
 
-//Exported globally.
 var sgxData SGX_Discovery_Data
 var platformData Platform_Data
 
@@ -78,8 +77,7 @@ func ProvidePlatformInfo(router *mux.Router) {
 	router.Handle("/host", handlers.ContentTypeHandler(getPlatformInfo(), "application/json")).Methods("GET")
 }
 
-
-func ExtractSGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
+func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
 	var sgx_enablement_info *SGX_Discovery_Data
 	var sgx_platform_data *Platform_Data
 
@@ -92,7 +90,7 @@ func ExtractSGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 	sgxData.Sgx_supported = sgxExtensionsEnabled
 	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled()
 	if err != nil {
-		return errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR"), nil, nil
+		return nil, nil, errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR")
 	}
 	sgxData.Sgx_enabled = sgxEnabled
 	sgxData.Flc_enabled = flcEnabled
@@ -122,7 +120,7 @@ func ExtractSGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 		log.Info("sgx and flc is enabled. Hence running PCKIDRetrieval tool")
 		fileContents, err := writePCKDetails()
 		if err == nil {
-			///Parse the string as retrieved.
+			// Parse the string as retrieved.
 			s := strings.Split(fileContents, ",")
 			log.Debug("EncryptedPPID: ", s[0])
 			log.Debug("PCE_ID: ", s[1])
@@ -139,23 +137,22 @@ func ExtractSGXPlatformValues() (error, *SGX_Discovery_Data, *Platform_Data) {
 				log.Debug("Manifest exists. This is a multi-package platform")
 				platformData.Manifest = s[5]
 			}
-			//FIXME : Remove global var usage. Instead let the function return sgx_platform_data
+			// FIXME : Remove global var usage. Instead let the function return sgx_platform_data
 			// and sgx_enablement_info. This would make unit testing easier.
 			sgx_platform_data = &platformData
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
-			return err, nil, nil
+			return nil, nil, err
 		}
 	} else {
 		log.Info("sgx and flc are not enabled. Hence not running PCKIDRetrieval tool")
 		err := errors.New("unsupported")
-		return err, nil, nil
+		return nil, nil, err
 	}
-	return nil, sgx_enablement_info, sgx_platform_data
+	return sgx_enablement_info, sgx_platform_data, nil
 }
 
-// Utility function that reads an unsigned long long from /dev/cpu/0/msr at offset
-// 'offset'
+// Utility function that reads an unsigned long long from /dev/cpu/0/msr at offset 'offset'
 func ReadMSR(offset int64) (uint64, error) {
 
 	msr, err := os.Open(MSR_DEVICE)
@@ -169,11 +166,11 @@ func ReadMSR(offset int64) (uint64, error) {
 	}
 
 	results := make([]byte, 8)
-	len, err := msr.Read(results)
+	readLen, err := msr.Read(results)
 	if err != nil {
 		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): There was an error reading msr at offset %x", offset)
 	}
-	if len < 8 {
+	if readLen < 8 {
 		return 0, errors.New("sgx_detection:ReadMSR(): Reading the msr returned the incorrect length")
 	}
 
@@ -185,7 +182,7 @@ func ReadMSR(offset int64) (uint64, error) {
 	return binary.LittleEndian.Uint64(results), nil
 }
 
-func isSGXAndFLCEnabled() (sgxEnabled bool, flcEnabled bool, err error) {
+func isSGXAndFLCEnabled() (sgxEnabled, flcEnabled bool, err error) {
 	sgxEnabled = false
 	flcEnabled = false
 	sgxBits, err := ReadMSR(IA32_FEATURE_CONTROL_REGISTER)
@@ -211,25 +208,25 @@ func cpuid_low(arg1, arg2 uint32) (eax, ebx, ecx, edx uint32)
 func isCPUSupportsSGXExtensions() bool {
 	sgx_extensions_enabled := false
 	_, ebx, _, _ := cpuid_low(7, 0)
-	if ((ebx >> 2) & 1) != 0 { ///2nd bit should be set if SGX extensions are supported.
+	if ((ebx >> 2) & 1) != 0 { // 2nd bit should be set if SGX extensions are supported.
 		sgx_extensions_enabled = true
 	}
 	return sgx_extensions_enabled
 }
 
-func epcMemoryDetails() (string, string) {
+func epcMemoryDetails() (epcOffset, epcSize string) {
 	eax, ebx, ecx, edx := cpuid_low(18, 2)
 	log.Debugf("eax, ebx, ecx, edx: %08x-%08x-%08x-%08x", eax, ebx, ecx, edx)
-	//eax(31, 12) + ebx(51, 32)
-	range1 := (((1 << 20) - 1) & (eax >> (13 - 1)))
-	range2 := ((1 << 20) - 1) & (ebx >> (32 - 1))
-	startAddress := ((range2 & 0xff) | range1) << 12
+	// eax(31, 12) + ebx(51, 32)
+	range1 := uint64((((1 << 20) - 1) & (eax >> 12)))
+	range2 := uint64(((1 << 20) - 1) & ebx)
+	startAddress := (range2 << 32) | (range1 << 12)
 	log.Debugf("startaddress: %08x", startAddress)
 
-	//ecx(31, 12) + edx(51, 32)
-	range1 = ((1 << 20) - 1) & (ecx >> (13 - 1))
-	range2 = ((1 << 20) - 1) & (edx >> (32 - 1))
-	size := ((range2 & 0xff) | range1) << 12
+	// ecx(31, 12) + edx(51, 32)
+	range1 = uint64(((1 << 20) - 1) & (ecx >> 12))
+	range2 = uint64(((1 << 20) - 1) & edx)
+	size := (range2 << 32) | (range1 << 12)
 	sizeINMB := convertToMB(size)
 	startAddressinHex := "0x" + fmt.Sprintf("%08x", startAddress)
 	log.Debugf("size in decimal %20d  and mb %16q: ", size, sizeINMB)
@@ -250,7 +247,7 @@ func isSGXInstructionSetSuported() int {
 	return sgx_value
 }
 
-func maxEnclaveSize() (int64, int64) {
+func maxEnclaveSize() (maxSizeNot64, maxSize64 int64) {
 	cpuid.Detect()
 	return cpuid.CPU.SGX.MaxEnclaveSizeNot64, cpuid.CPU.SGX.MaxEnclaveSize64
 }
@@ -267,12 +264,12 @@ func writePCKDetails() (string, error) {
 		return "", err
 	}
 	fileContents := ""
-	///check if file exists in the directory then parse it and write the values in log file.
+	// check if file exists in the directory then parse it and write the values in log file.
 	if _, err := os.Stat("/opt/pckData"); err == nil {
 		// path/to/whatever exists
 		dat, err := ioutil.ReadFile("/opt/pckData")
 		check(err)
-		fileContents = string(dat[:])
+		fileContents = string(dat)
 	} else if os.IsNotExist(err) {
 		// path/to/whatever does *not* exist
 		log.Warning("File not found")
@@ -319,7 +316,7 @@ func getPlatformInfo() errorHandlerFunc {
 	}
 }
 
-func convertToMB(b uint32) string {
+func convertToMB(b uint64) string {
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
@@ -416,7 +413,7 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 				log.Error("PushSGXData: Invalid status code received: " + strconv.Itoa(resp.StatusCode))
 			}
 
-			retries += 1
+			retries++
 			if retries >= conf.RetryCount {
 				log.Errorf("PushSGXData: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
 				time.Sleep(time.Duration(time_bw_calls) * time.Minute)

@@ -38,7 +38,7 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 				return tcbstatus, err
 			}
 
-			retries += 1
+			retries++
 			if retries >= conf.RetryCount {
 				log.Errorf("GetTCBStatus: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
 				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
@@ -70,7 +70,7 @@ func GetTCBStatus(qeid string) (string, error) {
 
 	log.Debug("SCS TCB Fetch URL : ", fetchURL)
 
-	//Add parameter qeid
+	// Add parameter qeid
 	q := request.URL.Query()
 	q.Add("qeid", qeid)
 	request.URL.RawQuery = q.Encode()
@@ -93,6 +93,23 @@ func GetTCBStatus(qeid string) (string, error) {
 	}
 
 	response, err := httpClient.Do(request)
+
+	if response != nil && response.StatusCode == http.StatusUnauthorized {
+		// Token could have expired. Fetch token and try again
+		utils.AasRWLock.Lock()
+		err = utils.AasClient.FetchAllTokens()
+		if err != nil {
+			return status, errors.Wrap(err, "GetTCBStatus: FetchAllTokens() Could not fetch token")
+		}
+		utils.AasRWLock.Unlock()
+		err = utils.AddJWTToken(request)
+		if err != nil {
+			return status, errors.Wrap(err, "GetTCBStatus: Failed to add JWT token to the authorization header")
+		}
+
+		response, err = httpClient.Do(request)
+	}
+
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()

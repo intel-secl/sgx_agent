@@ -25,8 +25,7 @@ var (
 	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
 )
 
-// Updates SHVS periodically. If an error occurs, error is logged
-// and wait for the next update.
+// Updates SHVS periodically. If an error occurs, error is logged and wait for the next update.
 func UpdateSHVSPeriodically(sgxdiscovery *SGX_Discovery_Data, platform_data *Platform_Data, period int) error {
 	// Infinitely update SHVS.
 	for {
@@ -43,18 +42,15 @@ func UpdateSHVSPeriodically(sgxdiscovery *SGX_Discovery_Data, platform_data *Pla
 			}
 		}
 
-		//Sleep here on a timer.
+		// Sleep here on a timer.
 		log.Infof("Waiting for %v minutes until next update.", period)
 		time.Sleep(time.Duration(period) * time.Minute)
 	}
-
-	return nil
 }
 
-//FIXME : Shouldn't be using a copy from SHVS
 type SGXHostInfo struct {
 	HostName     string `json:"host_name"`
-	Description  string `json:"description, omitempty"`
+	Description  string `json:"description,omitempty"`
 	UUID         string `json:"uuid"`
 	SgxSupported bool   `json:"sgx_supported"`
 	SgxEnabled   bool   `json:"sgx_enabled"`
@@ -80,10 +76,10 @@ func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, t
 		for {
 			err = PushSGXEnablementData(sgxdiscovery, tcbstatus)
 			if err == nil {
-				return err //Exit out of this loop
+				return nil // Exit out of this loop
 			}
 
-			retries += 1
+			retries++
 			if retries >= conf.RetryCount {
 				log.Errorf("pushHostSGXDiscovery: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
 				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
@@ -94,7 +90,7 @@ func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, t
 	return err
 }
 
-//Update SHVS With SGX Discovery Data and TCB Status.
+// Update SHVS With SGX Discovery Data and TCB Status.
 func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
 	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
 	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
@@ -107,7 +103,7 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 	api_endpoint := conf.SGXHVSBaseUrl + "/hosts"
 	log.Debug("Updating SGX Discovery data to SHVS at ", api_endpoint)
 
-	//Hardware UUID
+	// Get Hardware UUID
 	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
 	if err != nil {
 		return errors.Wrap(err, "UpdateHostSGXDiscovery  - Could not parse hardware UUID.")
@@ -118,7 +114,7 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 		break
 	}
 
-	//Get Host Name
+	// Get Host Name
 	hostName, err := utils.GetLocalHostname()
 	if err != nil {
 		return errors.Wrap(err, "UpdateHostSGXDiscovery - Error while getting hostname.")
@@ -158,6 +154,24 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 	}
 
 	response, err := httpClient.Do(request)
+
+	if response != nil && response.StatusCode == http.StatusUnauthorized {
+		// Token could have expired. Fetch token and try again
+		utils.AasRWLock.Lock()
+		err = utils.AasClient.FetchAllTokens()
+		if err != nil {
+			return errors.Wrap(err, "PushSGXEnablementData: FetchAllTokens() Could not fetch token")
+		}
+		utils.AasRWLock.Unlock()
+		err = utils.AddJWTToken(request)
+		if err != nil {
+			return errors.Wrap(err, "PushSGXEnablementData: Failed to add JWT token to the authorization header")
+		}
+
+		request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+		response, err = httpClient.Do(request)
+	}
+
 	if response != nil {
 		defer func() {
 			derr := response.Body.Close()

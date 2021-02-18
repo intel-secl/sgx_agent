@@ -58,8 +58,8 @@ type Configuration struct {
 
 	TrustedRootCA *x509.Certificate
 
-	WaitTime     int
-	RetryCount   int
+	WaitTime           int
+	RetryCount         int
 	SHVSUpdateInterval int
 }
 
@@ -244,12 +244,12 @@ func (c *Configuration) Save() error {
 	return yaml.NewEncoder(file).Encode(c)
 }
 
-func Load(path string) *Configuration {
+func Load(filePath string) *Configuration {
 	log.Trace("config/config:Load() Entering")
 	defer log.Trace("config/config:Load() Leaving")
 
 	var c Configuration
-	file, err := os.Open(path)
+	file, _ := os.Open(filePath)
 	if file != nil {
 		defer func() {
 			derr := file.Close()
@@ -257,7 +257,7 @@ func Load(path string) *Configuration {
 				log.WithError(derr).Error("Failed to close config.yml")
 			}
 		}()
-		err = yaml.NewDecoder(file).Decode(&c)
+		err := yaml.NewDecoder(file).Decode(&c)
 		if err != nil {
 			log.WithError(err).Error("Failed to decode config.yml contents")
 		}
@@ -266,6 +266,6 @@ func Load(path string) *Configuration {
 		c.LogLevel = log.InfoLevel
 	}
 
-	c.configFile = path
+	c.configFile = filePath
 	return &c
 }

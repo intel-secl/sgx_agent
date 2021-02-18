@@ -5,21 +5,15 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
-	"intel/isecl/lib/common/v3/crypt"
 	e "intel/isecl/lib/common/v3/exec"
 	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/lib/common/v3/validation"
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/resource"
 	"intel/isecl/sgx_agent/v3/version"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
@@ -98,11 +92,11 @@ func (a *App) logWriter() io.Writer {
 	return os.Stderr
 }
 
-func (a *App) httpLogWriter() io.Writer {
-	if a.HTTPLogWriter != nil {
-		return a.HTTPLogWriter
+func (a *App) secLogWriter() io.Writer {
+	if a.SecLogWriter != nil {
+		return a.SecLogWriter
 	}
-	return os.Stderr
+	return os.Stdout
 }
 
 func (a *App) configuration() *config.Configuration {
@@ -116,13 +110,13 @@ func (a *App) executablePath() string {
 	if a.ExecutablePath != "" {
 		return a.ExecutablePath
 	}
-	exec, err := os.Executable()
+	execPath, err := os.Executable()
 	if err != nil {
 		log.WithError(err).Error("app:executablePath() Unable to find SGX_AGENT executable")
 		// if we can't find self-executable path, we're probably in a state that is panic() worthy
 		panic(err)
 	}
-	return exec
+	return execPath
 }
 
 func (a *App) homeDir() string {
@@ -167,13 +161,13 @@ func (a *App) configureLogs(stdOut, logFile bool) {
 
 	if stdOut {
 		if logFile {
-			ioWriterDefault = io.MultiWriter(os.Stdout, a.LogWriter)
+			ioWriterDefault = io.MultiWriter(os.Stdout, a.logWriter())
 		} else {
 			ioWriterDefault = os.Stdout
 		}
 	}
 
-	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.SecLogWriter)
+	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.secLogWriter())
 	f := commLog.LogFormatter{MaxLength: a.configuration().LogMaxLength}
 	commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, &f, ioWriterDefault, false)
 	commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, &f, ioWriterSecurity, false)
@@ -290,8 +284,7 @@ func (a *App) Run(args []string) error {
 			return errors.Wrapf(err, "Could not parse sgx-agent user gid '%s'", sgxAgentUser.Gid)
 		}
 
-		//Change the file ownership to sgx-agent user
-
+		// Change the file ownership to sgx-agent user
 		err = cos.ChownR(constants.ConfigDir, uid, gid)
 		if err != nil {
 			return errors.Wrap(err, "Error while changing file ownership")
@@ -309,45 +302,46 @@ func (a *App) startAgent() error {
 
 	c := a.configuration()
 
-	err, sgxDiscoveryData, platformData := resource.ExtractSGXPlatformValues()
+	sgxDiscoveryData, platformData, err := resource.ExtractSGXPlatformValues()
 	if err != nil {
 		log.WithError(err).Error("Unable to extract SGX Platform Values. Terminating...")
 		return err
 	}
 
-	//Check if SGX Supported && SGX Enabled && FLC Enabled.
-	if sgxDiscoveryData.Sgx_supported != true {
+	// Check if SGX Supported && SGX Enabled && FLC Enabled.
+	if !sgxDiscoveryData.Sgx_supported {
 		err := errors.New("SGX is not supported.")
 		log.WithError(err).Error("SGX is not supported. Terminating...")
 		return err
 	}
-
 	log.Debug("SGX is supported.")
 
-	if sgxDiscoveryData.Sgx_enabled != true {
+	if !sgxDiscoveryData.Sgx_enabled {
 		err := errors.New("SGX is not enabled.")
 		log.WithError(err).Error("SGX is not enabled. Terminating...")
 		return err
 	}
 	log.Debug("SGX is enabled.")
-	if sgxDiscoveryData.Flc_enabled != true {
+
+	if !sgxDiscoveryData.Flc_enabled {
 		err := errors.New("FLC is not enabled.")
 		log.WithError(err).Error("FLC is not enabled. Terminating...")
 		return err
 	}
 	log.Debug("FLC is enabled.")
+
 	status, err := resource.PushSGXData(platformData)
-	if status != true && err != nil {
+	if !status && err != nil {
 		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
 		return err
 	}
 
-	//If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
+	// If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
 	if c.SGXHVSBaseUrl != "" {
 		log.Info("SHVS URL is configured...")
 		log.Debug("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 
-		//Start SHVS Update Beacon
+		// Start SHVS Update Beacon
 		err = resource.UpdateSHVSPeriodically(sgxDiscoveryData, platformData, c.SHVSUpdateInterval)
 
 		if err != nil {
@@ -442,6 +436,7 @@ func (a *App) uninstall(purge bool) {
 		log.WithError(err).Error("error stopping service")
 	}
 }
+
 func removeService() {
 	log.Trace("app:removeService() Entering")
 	defer log.Trace("app:removeService() Leaving")
@@ -451,26 +446,6 @@ func removeService() {
 		fmt.Println("Could not remove SGX Agent Service")
 		fmt.Println("Error : ", err)
 	}
-}
-
-func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet) error {
-	log.Trace("app:validateCmdAndEnv() Entering")
-	defer log.Trace("app:validateCmdAndEnv() Leaving")
-
-	env_names := make([]string, 0)
-	for k := range env_names_cmd_opts {
-		env_names = append(env_names, k)
-	}
-
-	missing, err := validation.ValidateEnvList(env_names)
-	if err != nil && missing != nil {
-		for _, m := range missing {
-			if cmd_f := flags.Lookup(env_names_cmd_opts[m]); cmd_f == nil {
-				return errors.New("app:validateCmdAndEnv() Insufficient arguments")
-			}
-		}
-	}
-	return nil
 }
 
 func validateSetupArgs(cmd string, args []string) error {
@@ -491,67 +466,6 @@ func validateSetupArgs(cmd string, args []string) error {
 		if len(args) != 0 {
 			return errors.New("app:validateCmdAndEnv() Please setup the arguments with env")
 		}
-	}
-	return nil
-}
-
-func fnGetJwtCerts() error {
-	log.Trace("resource/service:fnGetJwtCerts() Entering")
-	defer log.Trace("resource/service:fnGetJwtCerts() Leaving")
-
-	conf := config.Global()
-
-	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
-		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
-	}
-	url := conf.AuthServiceUrl + "jwt-certificates"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return errors.Wrap(err, "Could not create http request")
-	}
-	req.Header.Add("accept", "application/x-pem-file")
-	rootCaCertPems, err := cos.GetDirFileContents(constants.TrustedCAsStoreDir, "*.pem")
-	if err != nil {
-		return errors.Wrap(err, "Could not read root CA certificate")
-	}
-
-	// Get the SystemCertPool, continue with an empty pool on error
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-	for _, rootCACert := range rootCaCertPems {
-		if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
-			return err
-		}
-	}
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-				RootCAs:            rootCAs,
-			},
-		},
-	}
-
-	res, err := httpClient.Do(req)
-	if res != nil {
-		defer func() {
-			derr := res.Body.Close()
-			if derr != nil {
-				log.WithError(derr).Error("Error closing response")
-			}
-		}()
-	}
-
-	if err != nil {
-		return errors.Wrap(err, "Could not retrieve jwt certificate")
-	}
-
-	body, _ := ioutil.ReadAll(res.Body)
-	err = crypt.SavePemCertWithShortSha1FileName(body, constants.TrustedJWTSigningCertsDir)
-	if err != nil {
-		return errors.Wrap(err, "Could not store Certificate")
 	}
 	return nil
 }
