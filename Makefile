@@ -22,7 +22,6 @@ installer: sgx_agent
 sgx_agent:
 	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sgx_agent/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sgx_agent/v3/version.Version=$(VERSION) -X intel/isecl/sgx_agent/v3/version.GitHash=$(GITCOMMIT)" -o out/sgx_agent
 
-
 docker: sgx_agent
 ifeq ($(PROXY_EXISTS),1)
 	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
@@ -30,6 +29,9 @@ else
 	docker build -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
 endif
 	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+
+sgx_agent-oci-archive: docker
+	skopeo copy docker-daemon:isecl/sgx_agent:$(VERSION) oci-archive:out/sgx_agent-$(VERSION)-$(GITCOMMIT).tar
 
 clean:
 	rm -f cover.*

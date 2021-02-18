@@ -28,4 +28,15 @@ if [ ! -f $CONFIG_PATH/.setup_done ]; then
 fi
 # to get actual hostname inside the container
 cp /etc/hostname /proc/sys/kernel/hostname
+
+if [ ! -z $SETUP_TASK ]; then
+  IFS=',' read -ra ADDR <<< "$SETUP_TASK"
+  for task in "${ADDR[@]}"; do
+    sgx_agent setup $task --force
+    if [ $? -ne 0 ]; then
+      exit 1
+     fi
+  done
+fi
+
 sgx_agent run
