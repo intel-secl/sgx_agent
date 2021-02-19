@@ -30,7 +30,7 @@ else
 endif
 	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
-sgx_agent-oci-archive: docker
+oci-archive: docker
 	skopeo copy docker-daemon:isecl/sgx_agent:$(VERSION) oci-archive:out/sgx_agent-$(VERSION)-$(GITCOMMIT).tar
 
 clean:
