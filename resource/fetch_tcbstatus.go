@@ -5,21 +5,19 @@
 package resource
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
-
 	"intel/isecl/lib/clients/v3"
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
-
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-// Wrapper over GetTCBStatus . Retries in case of error till we succeed.
+// GetTCBStatusRepeatUntilSuccess is a Wrapper over GetTCBStatus. Retries in case of error till we succeed.
 func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 	conf := config.Global()
 	if conf == nil {
@@ -28,7 +26,7 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 
 	tcbstatus, err := GetTCBStatus(qeid)
 
-	var time_bw_calls int = conf.WaitTime
+	var timeBwCalls int = conf.WaitTime
 	var retries int = 0
 	if err != nil {
 		log.WithError(err)
@@ -40,8 +38,8 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 
 			retries++
 			if retries >= conf.RetryCount {
-				log.Errorf("GetTCBStatus: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
-				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
+				log.Errorf("GetTCBStatus: Retried %d times, Sleeping %d minutes...", conf.RetryCount, timeBwCalls)
+				time.Sleep(time.Duration(timeBwCalls) * time.Minute)
 				retries = 0
 			}
 		}
@@ -49,7 +47,7 @@ func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
 	return tcbstatus, err
 }
 
-// Fetches TCB status from SCS using QEID.
+// GetTCBStatus Fetches TCB status from SCS using QEID.
 func GetTCBStatus(qeid string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
@@ -63,14 +61,14 @@ func GetTCBStatus(qeid string) (string, error) {
 		return status, errors.Wrap(errors.New("getTCBStatus: Configuration pointer is null"), "Config error")
 	}
 
-	SCSBaseURL := conf.ScsBaseUrl
+	SCSBaseURL := conf.ScsBaseURL
 
 	fetchURL := SCSBaseURL + "/certification/v1/tcbstatus"
 	request, _ := http.NewRequest("GET", fetchURL, nil)
 
 	log.Debug("SCS TCB Fetch URL : ", fetchURL)
 
-	// Add parameter qeid
+	// Add qeid query parameter for fetching tcb status
 	q := request.URL.Query()
 	q.Add("qeid", qeid)
 	request.URL.RawQuery = q.Encode()

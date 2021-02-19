@@ -5,15 +5,13 @@
 package resource
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/pkg/errors"
-
 	"intel/isecl/lib/clients/v3"
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
-
-	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -25,11 +23,12 @@ var (
 	hardwareUUIDCmd = []string{"dmidecode", "-s", "system-uuid"}
 )
 
-// Updates SHVS periodically. If an error occurs, error is logged and wait for the next update.
-func UpdateSHVSPeriodically(sgxdiscovery *SGX_Discovery_Data, platform_data *Platform_Data, period int) error {
-	// Infinitely update SHVS.
+// UpdateSHVSPeriodically Updates SHVS periodically. If an error occurs,
+// error is logged and wait for the next update.
+func UpdateSHVSPeriodically(sgxdiscovery *SGXDiscoveryData, platformData *PlatformData, period int) error {
+	// update SHVS as per configured timer.
 	for {
-		tcbstatus, err := GetTCBStatus(platform_data.Qe_id)
+		tcbstatus, err := GetTCBStatus(platformData.QeID)
 		if err != nil {
 			// Log error . But don't throw it.
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
@@ -60,8 +59,9 @@ type SGXHostInfo struct {
 	TcbUptodate  bool   `json:"tcb_upToDate"`
 }
 
-// Wrapper over PushHostSGXDiscovery . Retries in case of error till we succeed.
-func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
+// PushSGXEnablementDataRepeatUntilSuccess is a Wrapper over PushHostSGXDiscovery
+// Retries in case of error till we succeed.
+func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGXDiscoveryData, tcbstatus bool) error {
 	conf := config.Global()
 	if conf == nil {
 		return errors.Wrap(errors.New("pushHostSGXDiscovery: Configuration pointer is null"), "Config error")
@@ -69,7 +69,7 @@ func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, t
 
 	err := PushSGXEnablementData(sgxdiscovery, tcbstatus)
 
-	var time_bw_calls int = conf.WaitTime
+	var timeBwCalls int = conf.WaitTime
 	var retries int = 0
 	if err != nil {
 		log.WithError(err)
@@ -81,8 +81,8 @@ func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, t
 
 			retries++
 			if retries >= conf.RetryCount {
-				log.Errorf("pushHostSGXDiscovery: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
-				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
+				log.Errorf("pushHostSGXDiscovery: Retried %d times, Sleeping %d minutes...", conf.RetryCount, timeBwCalls)
+				time.Sleep(time.Duration(timeBwCalls) * time.Minute)
 				retries = 0
 			}
 		}
@@ -90,8 +90,8 @@ func PushSGXEnablementDataRepeatUntilSuccess(sgxdiscovery *SGX_Discovery_Data, t
 	return err
 }
 
-// Update SHVS With SGX Discovery Data and TCB Status.
-func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) error {
+// PushSGXEnablementData updates SHVS With SGX Discovery Data and TCB Status.
+func PushSGXEnablementData(sgxdiscovery *SGXDiscoveryData, tcbstatus bool) error {
 	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
 	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
 
@@ -100,8 +100,8 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 		return errors.Wrap(errors.New("UpdateHostSGXDiscovery: Configuration pointer is null"), "Config error")
 	}
 
-	api_endpoint := conf.SGXHVSBaseUrl + "/hosts"
-	log.Debug("Updating SGX Discovery data to SHVS at ", api_endpoint)
+	apiEndPoint := conf.SGXHVSBaseURL + "/hosts"
+	log.Debug("Updating SGX Discovery data to SHVS at ", apiEndPoint)
 
 	// Get Hardware UUID
 	result, err := utils.ReadAndParseFromCommandLine(hardwareUUIDCmd)
@@ -124,11 +124,11 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 		HostName:     hostName,
 		Description:  "Demo",
 		UUID:         hardwareUUID,
-		SgxSupported: sgxdiscovery.Sgx_supported,
-		SgxEnabled:   sgxdiscovery.Sgx_enabled,
-		FlcEnabled:   sgxdiscovery.Flc_enabled,
-		EpcOffset:    sgxdiscovery.Epc_startaddress,
-		EpcSize:      sgxdiscovery.Epc_size,
+		SgxSupported: sgxdiscovery.SgxSupported,
+		SgxEnabled:   sgxdiscovery.SgxEnabled,
+		FlcEnabled:   sgxdiscovery.FlcEnabled,
+		EpcOffset:    sgxdiscovery.EpcStartAddress,
+		EpcSize:      sgxdiscovery.EpcSize,
 		TcbUptodate:  true}
 
 	reqBytes, err := json.Marshal(requestData)
@@ -136,7 +136,7 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 		return errors.Wrap(err, "UpdateHostSGXDiscovery: struct to json marshalling failed")
 	}
 
-	request, _ := http.NewRequest("POST", api_endpoint, bytes.NewBuffer(reqBytes))
+	request, _ := http.NewRequest("POST", apiEndPoint, bytes.NewBuffer(reqBytes))
 	request.Header.Set("Content-Type", "application/json")
 	err = utils.AddJWTToken(request)
 	if err != nil {
@@ -182,13 +182,13 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 	}
 	if err != nil {
 		slog.WithError(err).Error("resource/UpdateHostSGXDiscovery Error making request")
-		return errors.Wrapf(err, "resource/UpdateHostSGXDiscovery Error making request %s", api_endpoint)
+		return errors.Wrapf(err, "resource/UpdateHostSGXDiscovery Error making request %s", apiEndPoint)
 	}
 
 	log.Debug("Request Completed : ", response.StatusCode)
 
 	if (response.StatusCode != http.StatusOK) && (response.StatusCode != http.StatusCreated) {
-		return errors.Errorf("resource/UpdateHostSGXDiscovery Request made to %s returned status %d", api_endpoint, response.StatusCode)
+		return errors.Errorf("resource/UpdateHostSGXDiscovery Request made to %s returned status %d", apiEndPoint, response.StatusCode)
 	}
 
 	data, err := ioutil.ReadAll(response.Body)
@@ -197,6 +197,5 @@ func PushSGXEnablementData(sgxdiscovery *SGX_Discovery_Data, tcbstatus bool) err
 	}
 
 	log.Debugf("Response from SHVS: -%v", string(data))
-
 	return nil
 }

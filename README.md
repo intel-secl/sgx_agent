@@ -66,7 +66,7 @@ Build SGX Agent
 
 ``` {.shell}
 git clone https://github.com/intel-secl/utils.git && cd utils
-git checkout v3.3.1
+git checkout v3.4.0
 cd builds/skc-tools/sgx_agent/build_scripts
 
 - To build SGX Agent,
@@ -81,8 +81,6 @@ cd builds/skc-tools/sgx_agent/build_scripts
     -   sgx\_agent start
 -   Stop service
     -   sgx\_agent stop
--   Restart service
-    -   sgx\_agent restart
 -   Status of service
     -   sgx\_agent status
 

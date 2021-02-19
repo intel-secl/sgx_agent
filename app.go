@@ -7,7 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/pkg/errors"
 	e "intel/isecl/lib/common/v3/exec"
+	commLog "intel/isecl/lib/common/v3/log"
+	commLogMsg "intel/isecl/lib/common/v3/log/message"
+	commLogInt "intel/isecl/lib/common/v3/log/setup"
+	cos "intel/isecl/lib/common/v3/os"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
@@ -18,17 +23,9 @@ import (
 	"os/exec"
 	"os/user"
 	"strconv"
-
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
-
-	commLog "intel/isecl/lib/common/v3/log"
-	commLogMsg "intel/isecl/lib/common/v3/log/message"
-	commLogInt "intel/isecl/lib/common/v3/log/setup"
-	cos "intel/isecl/lib/common/v3/os"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -234,9 +231,9 @@ func (a *App) Run(args []string) error {
 			a.printUsage()
 			return errors.New("No such setup task")
 		}
-		valid_err := validateSetupArgs(args[2], args[3:])
-		if valid_err != nil {
-			return errors.Wrap(valid_err, "app:Run() Invalid setup task arguments")
+		validErr := validateSetupArgs(args[2], args[3:])
+		if validErr != nil {
+			return errors.Wrap(validErr, "app:Run() Invalid setup task arguments")
 		}
 		a.Config = config.Global()
 		err := a.Config.SaveConfiguration(context)
@@ -250,9 +247,9 @@ func (a *App) Run(args []string) error {
 			Tasks: []setup.Task{
 				setup.Download_Ca_Cert{
 					Flags:                args,
-					CmsBaseURL:           a.Config.CMSBaseUrl,
+					CmsBaseURL:           a.Config.CMSBaseURL,
 					CaCertDirPath:        constants.TrustedCAsStoreDir,
-					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
+					TrustedTlsCertDigest: a.Config.CmsTLSCertDigest,
 					ConsoleWriter:        os.Stdout,
 				},
 			},
@@ -309,21 +306,21 @@ func (a *App) startAgent() error {
 	}
 
 	// Check if SGX Supported && SGX Enabled && FLC Enabled.
-	if !sgxDiscoveryData.Sgx_supported {
+	if !sgxDiscoveryData.SgxSupported {
 		err := errors.New("SGX is not supported.")
 		log.WithError(err).Error("SGX is not supported. Terminating...")
 		return err
 	}
 	log.Debug("SGX is supported.")
 
-	if !sgxDiscoveryData.Sgx_enabled {
+	if !sgxDiscoveryData.SgxEnabled {
 		err := errors.New("SGX is not enabled.")
 		log.WithError(err).Error("SGX is not enabled. Terminating...")
 		return err
 	}
 	log.Debug("SGX is enabled.")
 
-	if !sgxDiscoveryData.Flc_enabled {
+	if !sgxDiscoveryData.FlcEnabled {
 		err := errors.New("FLC is not enabled.")
 		log.WithError(err).Error("FLC is not enabled. Terminating...")
 		return err
@@ -337,7 +334,7 @@ func (a *App) startAgent() error {
 	}
 
 	// If SHVS URL is configured, get the tcbstatus from SCS and Push to SHVS periodically
-	if c.SGXHVSBaseUrl != "" {
+	if c.SGXHVSBaseURL != "" {
 		log.Info("SHVS URL is configured...")
 		log.Debug("SHVS Update Interval is : ", c.SHVSUpdateInterval)
 

@@ -24,7 +24,7 @@ const (
 	TrustedCAsStoreDir        = ConfigDir + "certs/trustedca/"
 	DefaultTLSCertFile        = ConfigDir + "tls-cert.pem"
 	DefaultTLSKeyFile         = ConfigDir + "tls.key"
-	CmsTlsCertDigestEnv       = "CMS_TLS_CERT_SHA384"
+	CmsTLSCertDigestEnv       = "CMS_TLS_CERT_SHA384"
 	SGXAgentLogLevel          = "SGX_AGENT_LOGLEVEL"
 	DefaultReadTimeout        = 30 * time.Second
 	DefaultReadHeaderTimeout  = 10 * time.Second
@@ -37,11 +37,11 @@ const (
 	HostDataReaderGroupName   = "HostDataReader"
 	SGXAgentUserName          = "sgx_agent"
 	DefaultTokenDurationMins  = 240
-	DefaultHttpPort           = 11001
+	DefaultHTTPSPort          = 11001
 	DefaultKeyAlgorithm       = "rsa"
 	DefaultKeyAlgorithmLength = 3072
-	DefaultTlsSan             = "127.0.0.1,localhost"
-	DefaultSGX_AgentTlsCn     = "SGX_AGENT TLS Certificate"
+	DefaultTLSSan             = "127.0.0.1,localhost"
+	DefaultSGXAgentTLSCn      = "SGX_AGENT TLS Certificate"
 	CertApproverGroupName     = "CertApprover"
 	DefaultRootCACommonName   = "SGX_AGENTCA"
 	DefaultWaitTime           = 5
