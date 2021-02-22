@@ -15,6 +15,7 @@ import (
 	"github.com/klauspost/cpuid"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v3"
+	clog "intel/isecl/lib/common/v3/log"
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
@@ -31,6 +32,9 @@ const (
 	FeatureControlRegister = 0x3A
 	MSRDevice              = "/dev/cpu/0/msr"
 )
+
+var log = clog.GetDefaultLogger()
+var slog = clog.GetSecurityLogger()
 
 type SGXDiscoveryData struct {
 	SgxSupported        bool   `json:"sgx-supported"`
@@ -52,11 +56,6 @@ type PlatformData struct {
 	Manifest      string `json:"Manifest"`
 }
 
-type PlatformResponse struct {
-	SGXData SGXDiscoveryData `json:"sgx-data"`
-	PData   PlatformData     `json:"sgx-platform-data"`
-}
-
 var (
 	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", "/opt/pckData"}
 )
@@ -68,13 +67,6 @@ type SCSPushResponse struct {
 
 var sgxData SGXDiscoveryData
 var platformData PlatformData
-
-func ProvidePlatformInfo(router *mux.Router) {
-	log.Trace("resource/sgx_detection:ProvidePlatformInfo() Entering")
-	defer log.Trace("resource/sgx_detection:ProvidePlatformInfo() Leaving")
-
-	router.Handle("/host", handlers.ContentTypeHandler(getPlatformInfo(), "application/json")).Methods("GET")
-}
 
 func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 	var sgxEnablementInfo *SGXDiscoveryData
@@ -271,43 +263,6 @@ func writePCKDetails() (string, error) {
 		log.Warning("unknown error while reading pckData file")
 	}
 	return fileContents, err
-}
-
-func getPlatformInfo() errorHandlerFunc {
-	return func(httpWriter http.ResponseWriter, httpRequest *http.Request) error {
-		log.Trace("resource/sgx_detection:GetPlatformInfo() Entering")
-		defer log.Trace("resource/sgx_detection:GetPlatformInfo() Leaving")
-
-		err := authorizeEndpoint(httpRequest, constants.HostDataReaderGroupName, true)
-		if err != nil {
-			return err
-		}
-
-		if httpRequest.Header.Get("Accept") != "application/json" {
-			return &resourceError{Message: "Accept type not supported", StatusCode: http.StatusNotAcceptable}
-		}
-
-		conf := config.Global()
-		if conf == nil {
-			return errors.Wrap(errors.New("getPlatformInfo: Configuration pointer is null"), "Config error")
-		}
-
-		res := PlatformResponse{SGXData: sgxData, PData: platformData}
-
-		httpWriter.Header().Set("Content-Type", "application/json")
-		httpWriter.WriteHeader(http.StatusOK)
-		js, err := json.Marshal(res)
-		if err != nil {
-			log.Debug("Marshalling unsuccessful")
-			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-		}
-		_, err = httpWriter.Write(js)
-		if err != nil {
-			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-		}
-		slog.Info("Platform data retrieved by:", httpRequest.RemoteAddr)
-		return nil
-	}
 }
 
 func convertToMB(b uint64) string {

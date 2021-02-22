@@ -14,41 +14,10 @@ import (
 	"intel/isecl/sgx_agent/v3/utils"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
-// GetTCBStatusRepeatUntilSuccess is a Wrapper over GetTCBStatus. Retries in case of error till we succeed.
-func GetTCBStatusRepeatUntilSuccess(qeid string) (string, error) {
-	conf := config.Global()
-	if conf == nil {
-		return "", errors.Wrap(errors.New("GetTCBStatus: Configuration pointer is null"), "Config error")
-	}
-
-	tcbstatus, err := GetTCBStatus(qeid)
-
-	var timeBwCalls int = conf.WaitTime
-	var retries int = 0
-	if err != nil {
-		log.WithError(err)
-		for {
-			tcbstatus, err = GetTCBStatus(qeid)
-			if err == nil {
-				return tcbstatus, err
-			}
-
-			retries++
-			if retries >= conf.RetryCount {
-				log.Errorf("GetTCBStatus: Retried %d times, Sleeping %d minutes...", conf.RetryCount, timeBwCalls)
-				time.Sleep(time.Duration(timeBwCalls) * time.Minute)
-				retries = 0
-			}
-		}
-	}
-	return tcbstatus, err
-}
-
 // GetTCBStatus Fetches TCB status from SCS using QEID.
-func GetTCBStatus(qeid string) (string, error) {
+func GetTCBStatus(qeId, pceId string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
 
@@ -70,7 +39,8 @@ func GetTCBStatus(qeid string) (string, error) {
 
 	// Add qeid query parameter for fetching tcb status
 	q := request.URL.Query()
-	q.Add("qeid", qeid)
+	q.Add("qeid", qeId)
+	q.Add("pceid", pceId)
 	request.URL.RawQuery = q.Encode()
 
 	err := utils.AddJWTToken(request)
