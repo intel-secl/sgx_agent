@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"intel/isecl/lib/common/v3/auth"
 	"intel/isecl/lib/common/v3/context"
-	"intel/isecl/sgx_agent/v3/constants"
-	"net/http"
-
 	clog "intel/isecl/lib/common/v3/log"
 	commLogMsg "intel/isecl/lib/common/v3/log/message"
 	ct "intel/isecl/lib/common/v3/types/aas"
+	"intel/isecl/sgx_agent/v3/constants"
+	"net/http"
 )
 
 var log = clog.GetDefaultLogger()

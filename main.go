@@ -6,7 +6,6 @@ package main
 
 import (
 	"intel/isecl/sgx_agent/v3/constants"
-
 	"os"
 	"os/user"
 	"runtime"

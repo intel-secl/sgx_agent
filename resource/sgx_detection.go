@@ -6,6 +6,7 @@
 package resource
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -17,8 +18,6 @@ import (
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/utils"
-
-	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -29,33 +28,33 @@ import (
 
 // MSR.IA32_Feature_Control register tells availability of SGX
 const (
-	IA32_FEATURE_CONTROL_REGISTER = 0x3A
-	MSR_DEVICE                    = "/dev/cpu/0/msr"
+	FeatureControlRegister = 0x3A
+	MSRDevice              = "/dev/cpu/0/msr"
 )
 
-type SGX_Discovery_Data struct {
-	Sgx_supported       bool   `json:"sgx-supported"`
-	Sgx_enabled         bool   `json:"sgx-enabled"`
-	Flc_enabled         bool   `json:"flc-enabled"`
-	Epc_startaddress    string `json:"epc-offset"`
-	Epc_size            string `json:"epc-size"`
-	sgx_Level           int
+type SGXDiscoveryData struct {
+	SgxSupported        bool   `json:"sgx-supported"`
+	SgxEnabled          bool   `json:"sgx-enabled"`
+	FlcEnabled          bool   `json:"flc-enabled"`
+	EpcStartAddress     string `json:"epc-offset"`
+	EpcSize             string `json:"epc-size"`
+	sgxInstructionSet   int
 	maxEnclaveSizeNot64 int64
 	maxEnclaveSize64    int64
 }
 
-type Platform_Data struct {
-	Encrypted_PPID string `json:"enc-ppid"`
-	Pce_id         string `json:"pceid"`
-	Cpu_svn        string `json:"cpusvn"`
-	Pce_svn        string `json:"pcesvn"`
-	Qe_id          string `json:"qeid"`
-	Manifest       string `json:"Manifest"`
+type PlatformData struct {
+	EncryptedPPID string `json:"enc-ppid"`
+	PceID         string `json:"pceid"`
+	CPUSvn        string `json:"cpusvn"`
+	PceSvn        string `json:"pcesvn"`
+	QeID          string `json:"qeid"`
+	Manifest      string `json:"Manifest"`
 }
 
 type PlatformResponse struct {
-	SGXData SGX_Discovery_Data `json:"sgx-data"`
-	PData   Platform_Data      `json:"sgx-platform-data"`
+	SGXData SGXDiscoveryData `json:"sgx-data"`
+	PData   PlatformData     `json:"sgx-platform-data"`
 }
 
 var (
@@ -67,8 +66,8 @@ type SCSPushResponse struct {
 	Message string `json:"Message"`
 }
 
-var sgxData SGX_Discovery_Data
-var platformData Platform_Data
+var sgxData SGXDiscoveryData
+var platformData PlatformData
 
 func ProvidePlatformInfo(router *mux.Router) {
 	log.Trace("resource/sgx_detection:ProvidePlatformInfo() Entering")
@@ -77,9 +76,9 @@ func ProvidePlatformInfo(router *mux.Router) {
 	router.Handle("/host", handlers.ContentTypeHandler(getPlatformInfo(), "application/json")).Methods("GET")
 }
 
-func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
-	var sgx_enablement_info *SGX_Discovery_Data
-	var sgx_platform_data *Platform_Data
+func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
+	var sgxEnablementInfo *SGXDiscoveryData
+	var sgxPlatformData *PlatformData
 
 	sgxExtensionsEnabled := isCPUSupportsSGXExtensions()
 	if !sgxExtensionsEnabled {
@@ -87,19 +86,19 @@ func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
 		return nil, nil, nil
 	}
 	log.Info("SGX Extensions are enabled, hence proceeding further")
-	sgxData.Sgx_supported = sgxExtensionsEnabled
+	sgxData.SgxSupported = sgxExtensionsEnabled
 	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR")
 	}
-	sgxData.Sgx_enabled = sgxEnabled
-	sgxData.Flc_enabled = flcEnabled
+	sgxData.SgxEnabled = sgxEnabled
+	sgxData.FlcEnabled = flcEnabled
 
-	EPCStartAddress, EPCSize := epcMemoryDetails()
-	sgxData.Epc_startaddress = EPCStartAddress
-	sgxData.Epc_size = EPCSize
-	sgxValue := isSGXInstructionSetSuported()
-	sgxData.sgx_Level = sgxValue
+	epcStartAddress, epcSize := epcMemoryDetails()
+	sgxData.EpcStartAddress = epcStartAddress
+	sgxData.EpcSize = epcSize
+	sgxInstructionSet := isSGXInstructionSetSuported()
+	sgxData.sgxInstructionSet = sgxInstructionSet
 	var maxEnclaveSizeNot64Val, maxEnclaveSize64Val = maxEnclaveSize()
 	sgxData.maxEnclaveSizeNot64 = maxEnclaveSizeNot64Val
 	sgxData.maxEnclaveSize64 = maxEnclaveSize64Val
@@ -108,13 +107,13 @@ func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
 	log.Debug("sgx supported: ", sgxExtensionsEnabled)
 	log.Debug("sgx enabled: ", sgxEnabled)
 	log.Debug("flc enabled: ", flcEnabled)
-	log.Debug("Start Address: ", EPCStartAddress)
-	log.Debug("Size: ", EPCSize)
-	log.Debug("SGXLevel Supported: ", sgxValue)
+	log.Debug("Start Address: ", epcStartAddress)
+	log.Debug("Size: ", epcSize)
+	log.Debug("SGXLevel Supported: ", sgxInstructionSet)
 	log.Debug("Enclave size when CPU is not in 64 bit mode: ", maxEnclaveSizeNot64Val)
 	log.Debug("Enclave size when CPU is in 64 bit mode: ", maxEnclaveSize64Val)
 
-	sgx_enablement_info = &sgxData
+	sgxEnablementInfo = &sgxData
 
 	if sgxEnabled && flcEnabled {
 		log.Info("sgx and flc is enabled. Hence running PCKIDRetrieval tool")
@@ -128,18 +127,18 @@ func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
 			log.Debug("PCE ISVSVN: ", s[3])
 			log.Debug("QE_ID: ", s[4])
 
-			platformData.Encrypted_PPID = s[0]
-			platformData.Pce_id = s[1]
-			platformData.Cpu_svn = s[2]
-			platformData.Pce_svn = s[3]
-			platformData.Qe_id = s[4]
+			platformData.EncryptedPPID = s[0]
+			platformData.PceID = s[1]
+			platformData.CPUSvn = s[2]
+			platformData.PceSvn = s[3]
+			platformData.QeID = s[4]
 			if len(s) > 5 {
 				log.Debug("Manifest exists. This is a multi-package platform")
 				platformData.Manifest = s[5]
 			}
-			// FIXME : Remove global var usage. Instead let the function return sgx_platform_data
-			// and sgx_enablement_info. This would make unit testing easier.
-			sgx_platform_data = &platformData
+			// FIXME : Remove global var usage. Instead let the function return sgxPlatformData
+			// and sgxEnablementInfo. This would make unit testing easier.
+			sgxPlatformData = &platformData
 		} else {
 			log.WithError(err).Info("fileContents not retrieved from PCKIDRetrivalTool")
 			return nil, nil, err
@@ -149,13 +148,13 @@ func ExtractSGXPlatformValues() (*SGX_Discovery_Data, *Platform_Data, error) {
 		err := errors.New("unsupported")
 		return nil, nil, err
 	}
-	return sgx_enablement_info, sgx_platform_data, nil
+	return sgxEnablementInfo, sgxPlatformData, nil
 }
 
-// Utility function that reads an unsigned long long from /dev/cpu/0/msr at offset 'offset'
+// ReadMSR is a utility function that reads an 64 bit value from /dev/cpu/0/msr at offset 'offset'
 func ReadMSR(offset int64) (uint64, error) {
 
-	msr, err := os.Open(MSR_DEVICE)
+	msr, err := os.Open(MSRDevice)
 	if err != nil {
 		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Error opening msr")
 	}
@@ -178,14 +177,13 @@ func ReadMSR(offset int64) (uint64, error) {
 	if err != nil {
 		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Error while closing msr device file")
 	}
-
 	return binary.LittleEndian.Uint64(results), nil
 }
 
 func isSGXAndFLCEnabled() (sgxEnabled, flcEnabled bool, err error) {
 	sgxEnabled = false
 	flcEnabled = false
-	sgxBits, err := ReadMSR(IA32_FEATURE_CONTROL_REGISTER)
+	sgxBits, err := ReadMSR(FeatureControlRegister)
 	if err != nil {
 		return sgxEnabled, flcEnabled, errors.Wrap(err, "Error while reading MSR")
 	}
@@ -199,19 +197,18 @@ func isSGXAndFLCEnabled() (sgxEnabled, flcEnabled bool, err error) {
 	if (sgxBits&(1<<17) != 0) && (sgxBits&(1<<0) != 0) {
 		flcEnabled = true
 	}
-
 	return sgxEnabled, flcEnabled, nil
 }
 
 func cpuid_low(arg1, arg2 uint32) (eax, ebx, ecx, edx uint32)
 
 func isCPUSupportsSGXExtensions() bool {
-	sgx_extensions_enabled := false
+	sgxExtensionsEnabled := false
 	_, ebx, _, _ := cpuid_low(7, 0)
 	if ((ebx >> 2) & 1) != 0 { // 2nd bit should be set if SGX extensions are supported.
-		sgx_extensions_enabled = true
+		sgxExtensionsEnabled = true
 	}
-	return sgx_extensions_enabled
+	return sgxExtensionsEnabled
 }
 
 func epcMemoryDetails() (epcOffset, epcSize string) {
@@ -235,27 +232,21 @@ func epcMemoryDetails() (epcOffset, epcSize string) {
 
 func isSGXInstructionSetSuported() int {
 	cpuid.Detect()
-	sgx_value := 0
+	sgxInstructionSet := 0
 	if cpuid.CPU.SGX.SGX1Supported {
-		sgx_value = 1
+		sgxInstructionSet = 1
 		if cpuid.CPU.SGX.SGX2Supported {
-			sgx_value = 2
+			sgxInstructionSet = 2
 		}
 	} else {
 		log.Debug("SGX instruction set 1 and 2 are not supported.")
 	}
-	return sgx_value
+	return sgxInstructionSet
 }
 
 func maxEnclaveSize() (maxSizeNot64, maxSize64 int64) {
 	cpuid.Detect()
 	return cpuid.CPU.SGX.MaxEnclaveSizeNot64, cpuid.CPU.SGX.MaxEnclaveSize64
-}
-
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
 }
 
 func writePCKDetails() (string, error) {
@@ -268,13 +259,16 @@ func writePCKDetails() (string, error) {
 	if _, err := os.Stat("/opt/pckData"); err == nil {
 		// path/to/whatever exists
 		dat, err := ioutil.ReadFile("/opt/pckData")
-		check(err)
-		fileContents = string(dat)
+		if err != nil {
+			log.Error("could not read sgx platform values from pckData file")
+		} else {
+			fileContents = string(dat)
+		}
 	} else if os.IsNotExist(err) {
 		// path/to/whatever does *not* exist
-		log.Warning("File not found")
+		log.Warning("pcData file not found")
 	} else {
-		log.Warning("some issue in reading file")
+		log.Warning("unknown error while reading pckData file")
 	}
 	return fileContents, err
 }
@@ -330,7 +324,7 @@ func convertToMB(b uint64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func PushSGXData(pdata *Platform_Data) (bool, error) {
+func PushSGXData(pdata *PlatformData) (bool, error) {
 	log.Trace("resource/sgx_detection.go: PushSGXData() Entering")
 	defer log.Trace("resource/sgx_detection.go: PushSGXData() Leaving")
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
@@ -343,15 +337,15 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 		return false, errors.Wrap(errors.New("PushSGXData: Configuration pointer is null"), "Config error")
 	}
 
-	pushUrl := conf.ScsBaseUrl + "/certification/v1/platforms"
-	log.Debug("PushSGXData: URL: ", pushUrl)
+	pushURL := conf.ScsBaseURL + "/certification/v1/platforms"
+	log.Debug("PushSGXData: URL: ", pushURL)
 
 	requestStr := map[string]string{
-		"enc_ppid": pdata.Encrypted_PPID,
-		"cpu_svn":  pdata.Cpu_svn,
-		"pce_svn":  pdata.Pce_svn,
-		"pce_id":   pdata.Pce_id,
-		"qe_id":    pdata.Qe_id,
+		"enc_ppid": pdata.EncryptedPPID,
+		"cpu_svn":  pdata.CPUSvn,
+		"pce_svn":  pdata.PceSvn,
+		"pce_id":   pdata.PceID,
+		"qe_id":    pdata.QeID,
 		"manifest": pdata.Manifest}
 
 	reqBytes, err := json.Marshal(requestStr)
@@ -360,7 +354,7 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 		return false, errors.Wrap(err, "PushSGXData: Marshal error:"+err.Error())
 	}
 
-	req, err := http.NewRequest("POST", pushUrl, bytes.NewBuffer(reqBytes))
+	req, err := http.NewRequest("POST", pushURL, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return false, errors.Wrap(err, "PushSGXData: Failed to Get New request")
 	}
@@ -390,7 +384,7 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 	}
 
 	var retries int = 0
-	var time_bw_calls int = conf.WaitTime
+	var timeBwCalls int = conf.WaitTime
 
 	if err != nil || (resp != nil && resp.StatusCode >= http.StatusInternalServerError) {
 
@@ -415,8 +409,8 @@ func PushSGXData(pdata *Platform_Data) (bool, error) {
 
 			retries++
 			if retries >= conf.RetryCount {
-				log.Errorf("PushSGXData: Retried %d times, Sleeping %d minutes...", conf.RetryCount, time_bw_calls)
-				time.Sleep(time.Duration(time_bw_calls) * time.Minute)
+				log.Errorf("PushSGXData: Retried %d times, Sleeping %d minutes...", conf.RetryCount, timeBwCalls)
+				time.Sleep(time.Duration(timeBwCalls) * time.Minute)
 				retries = 0
 			}
 		}

@@ -19,7 +19,7 @@ import (
 
 var (
 	c         = config.Global()
-	AasClient = aas.NewJWTClient(c.AuthServiceUrl)
+	AasClient = aas.NewJWTClient(c.AuthServiceURL)
 	AasRWLock = sync.RWMutex{}
 )
 
@@ -63,7 +63,7 @@ func AddJWTToken(req *http.Request) error {
 	defer log.Trace("resource/utils:AddJWTToken() Leaving")
 
 	if AasClient.BaseURL == "" {
-		AasClient = aas.NewJWTClient(c.AuthServiceUrl)
+		AasClient = aas.NewJWTClient(c.AuthServiceURL)
 		if AasClient.HTTPClient == nil {
 			c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 			if err != nil {
@@ -75,7 +75,7 @@ func AddJWTToken(req *http.Request) error {
 	}
 
 	AasRWLock.RLock()
-	jwtToken, err := AasClient.GetUserToken(c.SGX_AgentUserName)
+	jwtToken, err := AasClient.GetUserToken(c.SGXAgentUserName)
 	AasRWLock.RUnlock()
 
 	// something wrong
@@ -84,15 +84,15 @@ func AddJWTToken(req *http.Request) error {
 		AasRWLock.Lock()
 		defer AasRWLock.Unlock()
 		// check if other thread fix it already
-		jwtToken, err = AasClient.GetUserToken(c.SGX_AgentUserName)
+		jwtToken, err = AasClient.GetUserToken(c.SGXAgentUserName)
 		// it is not fixed
 		if err != nil {
-			AasClient.AddUser(c.SGX_AgentUserName, c.SGX_AgentPassword)
+			AasClient.AddUser(c.SGXAgentUserName, c.SGXAgentPassword)
 			err = AasClient.FetchAllTokens()
 			if err != nil {
 				log.Warn("Error fetching all tokens...", err)
 			}
-			jwtToken, err = AasClient.GetUserToken(c.SGX_AgentUserName)
+			jwtToken, err = AasClient.GetUserToken(c.SGXAgentUserName)
 			if err != nil {
 				log.Error("resource/shared_util:AddJWTToken() Error initializing http client.. ", err)
 				return errors.Wrap(err, "resource/utils:AddJWTToken() Could not fetch token")

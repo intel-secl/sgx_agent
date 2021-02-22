@@ -29,12 +29,12 @@ func (s Server) Run(c setup.Context) error {
 	defer log.Trace("tasks/server:Run() Leaving")
 
 	fmt.Fprintln(s.ConsoleWriter, "Running server setup...")
-	defaultPort, err := c.GetenvInt("SGX_PORT", "sgx serification service http port")
+	defaultPort, err := c.GetenvInt("SGX_PORT", "sgx serification service https port")
 	if err != nil {
-		defaultPort = constants.DefaultHttpPort
+		defaultPort = constants.DefaultHTTPSPort
 	}
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
-	fs.IntVar(&s.Config.Port, "port", defaultPort, "sgx agent Service http port")
+	fs.IntVar(&s.Config.Port, "port", defaultPort, "sgx agent Service https port")
 	err = fs.Parse(s.Flags)
 	if err != nil {
 		return errors.Wrap(err, "tasks/server:Run() Could not parse input flags")

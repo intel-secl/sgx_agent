@@ -27,7 +27,7 @@ var slog = commLog.GetSecurityLogger()
 type Configuration struct {
 	configFile       string
 	Port             int
-	CmsTlsCertDigest string
+	CmsTLSCertDigest string
 	LogMaxLength     int
 	LogEnableStdout  bool
 	LogLevel         log.Level
@@ -37,14 +37,14 @@ type Configuration struct {
 	CACertValidity     int
 	TokenDurationMins  int
 
-	SGX_AgentUserName string
-	SGX_AgentPassword string
-	CMSBaseUrl        string
-	AuthServiceUrl    string
-	SGXHVSBaseUrl     string
-	SVSBaseURL        string
-	ScsBaseUrl        string
-	Subject           struct {
+	SGXAgentUserName string
+	SGXAgentPassword string
+	CMSBaseURL       string
+	AuthServiceURL   string
+	SGXHVSBaseURL    string
+	SVSBaseURL       string
+	ScsBaseURL       string
+	Subject          struct {
 		TLSCertCommonName string
 	}
 	TLSKeyFile        string
@@ -81,55 +81,55 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 
 	var err error = nil
 
-	sgx_agentUserName, err := c.GetenvString("SGX_AGENT_USERNAME", "SGX_AGENT Username")
-	if err == nil && sgx_agentUserName != "" {
-		conf.SGX_AgentUserName = sgx_agentUserName
-	} else if conf.SGX_AgentUserName == "" {
+	sgxAgentUserName, err := c.GetenvString("SGX_AGENT_USERNAME", "SGX_AGENT Username")
+	if err == nil && sgxAgentUserName != "" {
+		conf.SGXAgentUserName = sgxAgentUserName
+	} else if conf.SGXAgentUserName == "" {
 		log.Error("SGX_AGENT_USERNAME is not defined in environment")
 	}
 
-	sgx_agentPssword, err := c.GetenvString("SGX_AGENT_PASSWORD", "SGX_AGENT Password")
-	if err == nil && sgx_agentPssword != "" {
-		conf.SGX_AgentPassword = sgx_agentPssword
-	} else if conf.SGX_AgentPassword == "" {
+	sgxAgentPassword, err := c.GetenvString("SGX_AGENT_PASSWORD", "SGX_AGENT Password")
+	if err == nil && sgxAgentPassword != "" {
+		conf.SGXAgentPassword = sgxAgentPassword
+	} else if conf.SGXAgentPassword == "" {
 		log.Error("SGX_AGENT_PASSWORD is not defined in environment")
 	}
 
-	tlsCertDigest, err := c.GetenvString(constants.CmsTlsCertDigestEnv, "TLS certificate digest")
+	tlsCertDigest, err := c.GetenvString(constants.CmsTLSCertDigestEnv, "TLS certificate digest")
 	if err == nil && tlsCertDigest != "" {
-		conf.CmsTlsCertDigest = tlsCertDigest
-	} else if conf.CmsTlsCertDigest == "" {
+		conf.CmsTLSCertDigest = tlsCertDigest
+	} else if conf.CmsTLSCertDigest == "" {
 		commLog.GetDefaultLogger().Error("CMS_TLS_CERT_SHA384 is not defined in environment")
 		return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	cmsBaseUrl, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
-	if err == nil && cmsBaseUrl != "" {
-		conf.CMSBaseUrl = cmsBaseUrl
-	} else if conf.CMSBaseUrl == "" {
+	cmsBaseURL, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
+	if err == nil && cmsBaseURL != "" {
+		conf.CMSBaseURL = cmsBaseURL
+	} else if conf.CMSBaseURL == "" {
 		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
 		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
-	if err == nil && aasApiUrl != "" {
-		conf.AuthServiceUrl = aasApiUrl
-	} else if conf.AuthServiceUrl == "" {
+	aasAPIURL, err := c.GetenvString("AAS_API_URL", "AAS API URL")
+	if err == nil && aasAPIURL != "" {
+		conf.AuthServiceURL = aasAPIURL
+	} else if conf.AuthServiceURL == "" {
 		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
 		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	sgxHVSBaseUrl, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
-	if err == nil && sgxHVSBaseUrl != "" {
-		conf.SGXHVSBaseUrl = sgxHVSBaseUrl
-	} else if conf.SGXHVSBaseUrl == "" {
+	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
+	if err == nil && sgxHVSBaseURL != "" {
+		conf.SGXHVSBaseURL = sgxHVSBaseURL
+	} else if conf.SGXHVSBaseURL == "" {
 		log.Info("SHVS_BASE_URL is not defined in environment. ")
 	}
 
-	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
-	if err == nil && scsBaseUrl != "" {
-		conf.ScsBaseUrl = scsBaseUrl
-	} else if conf.ScsBaseUrl == "" {
+	scsBaseURL, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
+	if err == nil && scsBaseURL != "" {
+		conf.ScsBaseURL = scsBaseURL
+	} else if conf.ScsBaseURL == "" {
 		log.Error("SCS_BASE_URL  is not defined in environment")
 	}
 
@@ -152,7 +152,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && tlsCertCN != "" {
 		conf.Subject.TLSCertCommonName = tlsCertCN
 	} else if conf.Subject.TLSCertCommonName == "" {
-		conf.Subject.TLSCertCommonName = constants.DefaultSGX_AgentTlsCn
+		conf.Subject.TLSCertCommonName = constants.DefaultSGXAgentTLSCn
 	}
 
 	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
@@ -173,7 +173,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && sanList != "" {
 		conf.CertSANList = sanList
 	} else if conf.CertSANList == "" {
-		conf.CertSANList = constants.DefaultTlsSan
+		conf.CertSANList = constants.DefaultTLSSan
 	}
 
 	waittime, err := c.GetenvInt("WAIT_TIME", "1 time between each retries to PCS")
@@ -213,19 +213,19 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	return conf.Save()
 }
 
-func (c *Configuration) Save() error {
+func (conf *Configuration) Save() error {
 	log.Trace("config/config:Save() Entering")
 	defer log.Trace("config/config:Save() Leaving")
 
-	if c.configFile == "" {
+	if conf.configFile == "" {
 		return errors.New("no config file")
 	}
-	file, err := os.OpenFile(c.configFile, os.O_RDWR, 0)
+	file, err := os.OpenFile(conf.configFile, os.O_RDWR, 0)
 	if err != nil {
 		// we have an error
 		if os.IsNotExist(err) {
 			// error is that the config doesnt yet exist, create it
-			file, err = os.OpenFile(c.configFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+			file, err = os.OpenFile(conf.configFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 			if err != nil {
 				return err
 			}
@@ -241,7 +241,7 @@ func (c *Configuration) Save() error {
 		}
 	}()
 
-	return yaml.NewEncoder(file).Encode(c)
+	return yaml.NewEncoder(file).Encode(conf)
 }
 
 func Load(filePath string) *Configuration {
