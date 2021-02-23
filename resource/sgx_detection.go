@@ -10,8 +10,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/klauspost/cpuid"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v3"
