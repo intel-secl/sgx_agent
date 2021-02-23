@@ -17,6 +17,7 @@ import (
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"intel/isecl/sgx_agent/v3/resource"
+	"intel/isecl/sgx_agent/v3/tasks"
 	"intel/isecl/sgx_agent/v3/version"
 	"io"
 	"os"
@@ -265,6 +266,11 @@ func (a *App) Run(args []string) error {
 					CaCertDirPath:        constants.TrustedCAsStoreDir,
 					TrustedTlsCertDigest: a.Config.CmsTLSCertDigest,
 					ConsoleWriter:        os.Stdout,
+				},
+				tasks.Update_Service_Config{
+					Flags:         args,
+					Config:        a.configuration(),
+					ConsoleWriter: os.Stdout,
 				},
 			},
 			AskInput: false,
