@@ -7,9 +7,9 @@ package config
 import (
 	"crypto/x509"
 	"errors"
+	"gopkg.in/yaml.v2"
 	"os"
 	"path"
-	"time"
 
 	errorLog "github.com/pkg/errors"
 	commLog "intel/isecl/lib/common/v3/log"
@@ -17,7 +17,6 @@ import (
 	"intel/isecl/sgx_agent/v3/constants"
 
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 var slog = commLog.GetSecurityLogger()
@@ -26,7 +25,6 @@ var slog = commLog.GetSecurityLogger()
 // Probably should embed a config generic struct
 type Configuration struct {
 	configFile       string
-	Port             int
 	CmsTLSCertDigest string
 	LogMaxLength     int
 	LogEnableStdout  bool
@@ -50,11 +48,6 @@ type Configuration struct {
 	TLSKeyFile        string
 	TLSCertFile       string
 	CertSANList       string
-	ReadTimeout       time.Duration
-	ReadHeaderTimeout time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	MaxHeaderBytes    int
 
 	TrustedRootCA *x509.Certificate
 
@@ -81,20 +74,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 
 	var err error = nil
 
-	sgxAgentUserName, err := c.GetenvString("SGX_AGENT_USERNAME", "SGX_AGENT Username")
-	if err == nil && sgxAgentUserName != "" {
-		conf.SGXAgentUserName = sgxAgentUserName
-	} else if conf.SGXAgentUserName == "" {
-		log.Error("SGX_AGENT_USERNAME is not defined in environment")
-	}
-
-	sgxAgentPassword, err := c.GetenvString("SGX_AGENT_PASSWORD", "SGX_AGENT Password")
-	if err == nil && sgxAgentPassword != "" {
-		conf.SGXAgentPassword = sgxAgentPassword
-	} else if conf.SGXAgentPassword == "" {
-		log.Error("SGX_AGENT_PASSWORD is not defined in environment")
-	}
-
 	tlsCertDigest, err := c.GetenvString(constants.CmsTLSCertDigestEnv, "TLS certificate digest")
 	if err == nil && tlsCertDigest != "" {
 		conf.CmsTLSCertDigest = tlsCertDigest
@@ -109,28 +88,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.CMSBaseURL == "" {
 		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
 		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
-	aasAPIURL, err := c.GetenvString("AAS_API_URL", "AAS API URL")
-	if err == nil && aasAPIURL != "" {
-		conf.AuthServiceURL = aasAPIURL
-	} else if conf.AuthServiceURL == "" {
-		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
-	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
-	if err == nil && sgxHVSBaseURL != "" {
-		conf.SGXHVSBaseURL = sgxHVSBaseURL
-	} else if conf.SGXHVSBaseURL == "" {
-		log.Info("SHVS_BASE_URL is not defined in environment. ")
-	}
-
-	scsBaseURL, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
-	if err == nil && scsBaseURL != "" {
-		conf.ScsBaseURL = scsBaseURL
-	} else if conf.ScsBaseURL == "" {
-		log.Error("SCS_BASE_URL  is not defined in environment")
 	}
 
 	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
@@ -174,40 +131,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CertSANList = sanList
 	} else if conf.CertSANList == "" {
 		conf.CertSANList = constants.DefaultTLSSan
-	}
-
-	waittime, err := c.GetenvInt("WAIT_TIME", "1 time between each retries to PCS")
-	if err == nil {
-		if waittime > constants.DefaultWaitTime {
-			conf.WaitTime = waittime
-		} else {
-			conf.WaitTime = constants.DefaultWaitTime
-		}
-	} else {
-		conf.WaitTime = constants.DefaultWaitTime
-	}
-
-	retrycount, err := c.GetenvInt("RETRY_COUNT", "Push Data Retry Count to SCS")
-	if err == nil {
-		if retrycount > constants.DefaultRetryCount {
-			conf.RetryCount = retrycount
-		} else {
-			conf.RetryCount = constants.DefaultRetryCount
-		}
-	} else {
-		conf.RetryCount = constants.DefaultRetryCount
-	}
-
-	shvsUpdateInterval, err := c.GetenvInt("SHVS_UPDATE_INTERVAL", "SHVS update interval in minutes")
-	if err == nil {
-		if shvsUpdateInterval > 0 && shvsUpdateInterval <= constants.DefaultSHVSUpdateInterval {
-			conf.SHVSUpdateInterval = shvsUpdateInterval
-			log.Info("SHVS Update interval is out of range 1 < SHVSUpdateInterval < 120 . Using default value of 120 minutes")
-		} else {
-			conf.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
-		}
-	} else {
-		conf.SHVSUpdateInterval = constants.DefaultSHVSUpdateInterval
 	}
 
 	return conf.Save()

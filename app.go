@@ -67,11 +67,25 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                              Optional env variables:")
 	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
-	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
-	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>                                : for CMS API url")
-	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that SGX-Agent is talking to the right CMS instance")
+	fmt.Fprintln(w, "    update_service_config    Updates Service Configuration")
+	fmt.Fprintln(w, "                             Required env variables:")
+	fmt.Fprintln(w, "                                 - SGX_AGENT_USERNAME                               : SGX_AGENT Username")
+	fmt.Fprintln(w, "                                 - SGX_AGENT_PASSWORD                               : SGX_AGENT Password")
+	fmt.Fprintln(w, "                                 - SCS_BASE_URL                                     : SCS Base URL")
+	fmt.Fprintln(w, "                                 - SGX_AGENT_LOGLEVEL                               : SGX_AGENT Log Level")
+	fmt.Fprintln(w, "                                 - SGX_AGENT_LOG_MAX_LENGTH                         : SGX Agent Log maximum length")
+	fmt.Fprintln(w, "                                 - SGX_AGENT_ENABLE_CONSOLE_LOG                     : SGX Agent Enable standard output")
+	fmt.Fprintln(w, "                                 - SHVS_UPDATE_INTERVAL                             : SHVS update interval in minutes")
+	fmt.Fprintln(w, "                                 - WAIT_TIME                                        : Time between each retries to PCS")
+	fmt.Fprintln(w, "                                 - RETRY_COUNT                                      : Push Data Retry Count to SCS")
+	fmt.Fprintln(w, "                                 - SHVS_BASE_URL                                    : HVS Base URL")
+	fmt.Fprintln(w, "                                 - AAS_API_URL                                      : AAS API URL")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    download_ca_cert         Download CMS root CA certificate")
+	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads new root CA cert")
+	fmt.Fprintln(w, "                             Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>                                : for CMS API url")
+	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that SGX-Agent is talking to the right CMS instance")
 	fmt.Fprintln(w, "")
 }
 
@@ -226,7 +240,7 @@ func (a *App) Run(args []string) error {
 			os.Exit(1)
 		}
 		if args[2] != "download_ca_cert" &&
-			args[2] != "server" &&
+			args[2] != "update_service_config" &&
 			args[2] != "all" {
 			a.printUsage()
 			return errors.New("No such setup task")
@@ -456,7 +470,7 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_ca_cert":
 		return nil
 
-	case "server":
+	case "update_service_config":
 		return nil
 
 	case "all":
