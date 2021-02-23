@@ -129,7 +129,7 @@ func PushSGXEnablementData(sgxdiscovery *SGXDiscoveryData, tcbstatus bool) error
 		FlcEnabled:   sgxdiscovery.FlcEnabled,
 		EpcOffset:    sgxdiscovery.EpcStartAddress,
 		EpcSize:      sgxdiscovery.EpcSize,
-		TcbUptodate:  true}
+		TcbUptodate:  tcbstatus}
 
 	reqBytes, err := json.Marshal(requestData)
 	if err != nil {
