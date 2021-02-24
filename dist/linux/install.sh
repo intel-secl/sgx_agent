@@ -150,8 +150,9 @@ else
     SETUPRESULT=$?
     if [ ${SETUPRESULT} == 0 ]; then
         systemctl start $COMPONENT_NAME
-        if [ "${SGX_AGENT_MODE}" == "Registration" ]; then
-            echo SGX_AGENT_MODE IS $SGX_AGENT_MODE
+        if [ -z "${SHVS_BASE_URL}" ]; then
+	    # When SHVS URL is not configured, the agent 
+	    # would update SCS and terminate.
             echo "Installation completed successfully!"
         else
             echo "Waiting for daemon to settle down before checking status"
