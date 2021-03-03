@@ -8,7 +8,6 @@ import (
 	"intel/isecl/sgx_agent/v3/constants"
 	"os"
 	"os/user"
-	"runtime"
 	"strconv"
 )
 
@@ -113,6 +112,6 @@ func main() {
 	err = app.Run(os.Args)
 	if err != nil {
 		log.Error("Application returned with error: ", err)
-		runtime.Goexit()
+		os.Exit(1)
 	}
 }
