@@ -29,20 +29,9 @@ type Configuration struct {
 	LogEnableStdout  bool
 	LogLevel         log.Level
 
-	KeyAlgorithm       string
-	KeyAlgorithmLength int
-	CACertValidity     int
-	TokenDurationMins  int
-
 	CMSBaseURL    string
 	SGXHVSBaseURL string
 	ScsBaseURL    string
-	Subject       struct {
-		TLSCertCommonName string
-	}
-	TLSKeyFile  string
-	TLSCertFile string
-	CertSANList string
 
 	BearerToken        string
 	WaitTime           int
@@ -98,35 +87,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
 		}
 	}
-
-	tlsCertCN, err := c.GetenvString("SGX_AGENT_TLS_CERT_CN", "SGX_AGENT TLS Certificate Common Name")
-	if err == nil && tlsCertCN != "" {
-		conf.Subject.TLSCertCommonName = tlsCertCN
-	} else if conf.Subject.TLSCertCommonName == "" {
-		conf.Subject.TLSCertCommonName = constants.DefaultSGXAgentTLSCn
-	}
-
-	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
-	if err == nil && tlsKeyPath != "" {
-		conf.TLSKeyFile = tlsKeyPath
-	} else if conf.TLSKeyFile == "" {
-		conf.TLSKeyFile = constants.DefaultTLSKeyFile
-	}
-
-	tlsCertPath, err := c.GetenvString("CERT_PATH", "Path of file/directory where TLS certificate needs to be stored")
-	if err == nil && tlsCertPath != "" {
-		conf.TLSCertFile = tlsCertPath
-	} else if conf.TLSCertFile == "" {
-		conf.TLSCertFile = constants.DefaultTLSCertFile
-	}
-
-	sanList, err := c.GetenvString("SAN_LIST", "SAN list for TLS")
-	if err == nil && sanList != "" {
-		conf.CertSANList = sanList
-	} else if conf.CertSANList == "" {
-		conf.CertSANList = constants.DefaultTLSSan
-	}
-
 	return conf.Save()
 }
 
