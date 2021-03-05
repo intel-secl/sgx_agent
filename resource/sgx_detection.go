@@ -107,7 +107,36 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 
 	if sgxEnabled && flcEnabled {
 		log.Info("sgx and flc is enabled. Hence running PCKIDRetrieval tool")
-		fileContents, err := writePCKDetails()
+
+		// Read the pckData cache and keep an inmemory copy of
+		// manifest if it present.
+		pckDataCacheAvailable := isPCKDataCached()
+		cachedManifest := ""
+		if pckDataCacheAvailable {
+			contents, err := readPCKDetailsFromCache()
+			if err == nil {
+				// Parse the CSV file
+				s := strings.Split(contents, ",")
+				if len(s) > 5 { // 6th field is the manifest.
+					log.Debug("PCK Manifest is available in cache.")
+					cachedManifest = s[5]
+				}
+				// Cache doesn't have manifest. This is not a multi-package
+				// system.
+			} else {
+				log.WithError(err).Info("fileContents not retrieved from pckData cache.")
+				return nil, nil, err
+			}
+		}
+
+		// Run PCKIDRetrivalInfo. Output is written to /opt/pckData
+		err = runPCKIDRetrivalInfo()
+		if err != nil {
+			log.Error("Unable to retrive PCK Details using tool. ")
+			return nil, nil, err
+		}
+
+		fileContents, err := readPCKDetailsFromCache()
 		if err == nil {
 			// Parse the string as retrieved.
 			s := strings.Split(fileContents, ",")
@@ -125,6 +154,17 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 			if len(s) > 5 {
 				log.Debug("Manifest exists. This is a multi-package platform")
 				platformData.Manifest = s[5]
+			} else {
+				// PCKIDRetrivalTool output did not have manifest in it.
+				// Check if manifest is available in cache. If it is not
+				// available then this is not a multi-package system.
+				if len(cachedManifest) > 0 {
+					log.Debug("Using Manifest from cache.")
+					platformData.Manifest = cachedManifest
+					// Append manifest to pckData. Manifest will be reused
+					// for subsequent reboot.
+					writePCKData(fileContents + "," + cachedManifest)
+				}
 			}
 			// FIXME : Remove global var usage. Instead let the function return sgxPlatformData
 			// and sgxEnablementInfo. This would make unit testing easier.
@@ -239,14 +279,48 @@ func maxEnclaveSize() (maxSizeNot64, maxSize64 int64) {
 	return cpuid.CPU.SGX.MaxEnclaveSizeNot64, cpuid.CPU.SGX.MaxEnclaveSize64
 }
 
-func writePCKDetails() (string, error) {
+func runPCKIDRetrivalInfo() error {
+	// Output is written to /opt/pckData
+	// FIXME : Check the error messages.
+	log.Debug("Running PCKIDRetrival tool and write to cache...")
 	_, err := utils.ReadAndParseFromCommandLine(pckIDRetrievalInfo)
 	if err != nil {
-		return "", err
+		return err
 	}
-	fileContents := ""
-	// check if file exists in the directory then parse it and write the values in log file.
+
+	return nil
+}
+
+func isPCKDataCached() bool {
+	log.Debug("Checking if PCK Data was cached... ")
+
 	if _, err := os.Stat("/opt/pckData"); err == nil {
+		log.Debug("PCK Data is available in cache.")
+		return true
+	}
+
+	log.Debug("PCK Data is not cached. ")
+
+	return false
+}
+
+func writePCKData(fileContents string) error {
+	// path/to/whatever exists
+	err := ioutil.WriteFile("/opt/pckData", []byte(fileContents), 0644)
+	if err != nil {
+		log.Error("Could not write sgx platform values to pckData file")
+	}
+
+	return err
+}
+
+func readPCKDetailsFromCache() (string, error) {
+	log.Debug("Reading PCKDetails from cache ... ")
+	fileContents := ""
+
+	// Check if file exists in the directory then parse it and write the values in log file.
+	_, err := os.Stat("/opt/pckData")
+	if err == nil {
 		// path/to/whatever exists
 		dat, err := ioutil.ReadFile("/opt/pckData")
 		if err != nil {
@@ -256,9 +330,9 @@ func writePCKDetails() (string, error) {
 		}
 	} else if os.IsNotExist(err) {
 		// path/to/whatever does *not* exist
-		log.Warning("pcData file not found")
+		log.Warning("pckData file not found.")
 	} else {
-		log.Warning("unknown error while reading pckData file")
+		log.Warning("Unknown error while reading pckData file")
 	}
 	return fileContents, err
 }
