@@ -6,6 +6,8 @@ FROM centos:8
 # Set env variables
 ENV SGX_AGENT_BIN dist/image/bin
 
+COPY dist/image/create_roles.sh /create_roles.sh
+RUN chmod +x /create_roles.sh
 COPY $SGX_AGENT_BIN/sgx_rpm_local_repo ${PWD}/sgx_rpm_local_repo
 COPY $SGX_AGENT_BIN/libdcap_quoteprov.so.1 $SGX_AGENT_BIN/pck_id_retrieval_tool_enclave.signed.so /usr/sbin/ 
 COPY $SGX_AGENT_BIN/PCKIDRetrievalTool /usr/sbin/

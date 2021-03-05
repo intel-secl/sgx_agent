@@ -20,6 +20,11 @@ if [ ! -f $CONFIG_PATH/.setup_done ]; then
     chmod 700 $directory
     chmod g+s $directory
   done
+  export BEARER_TOKEN=`./create_roles.sh`
+  if [ $? -ne 0 ]; then
+        echo "sgx_agent token generation failed. exiting"
+        exit 1
+  fi
   sgx_agent setup all
   if [ $? -ne 0 ]; then
     exit 1
@@ -45,5 +50,9 @@ if [ ! -z "$SETUP_TASK" ]; then
     fi
   done
 fi
+
+unset BEARER_TOKEN
+unset CSP_ADMIN_USERNAME
+unset CSP_ADMIN_PASSWORD
 
 sgx_agent run
