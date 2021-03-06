@@ -66,7 +66,7 @@ Build SGX Agent
 
 ``` {.shell}
 git clone https://github.com/intel-secl/utils.git && cd utils
-git checkout v3.4.0
+git checkout v3.5.0
 cd builds/skc-tools/sgx_agent/build_scripts
 
 - To build SGX Agent,
@@ -92,25 +92,21 @@ cd builds/skc-tools/sgx_agent/build_scripts
 
 ### Direct dependencies
 
-  Name       Repo URL                            Minimum Version Required
-  ---------- ----------------------------- ------------------------------------
-  uuid       github.com/google/uuid                       v1.1.2
-  cpuid      github.com/klauspost/cpuid                   v1.2.1
-  handlers   github.com/gorilla/handlers                  v1.4.0
-  mux        github.com/gorilla/mux                       v1.7.3
-  errors     github.com/pkg/errors                        v0.9.1
-  logrus     github.com/sirupsen/logrus                   v1.4.0
-  testify    github.com/stretchr/testify                  v1.3.0
-  yaml.v2    gopkg.in/yaml.v2                             v2.4.0
-  yaml.v3    gopkg.in/yaml.v3                             v3.0.0-20210107192922-496545a6307b
-  jwt-go     github.com/Waterdrips/jwt-go                 v3.2.1-0.20200915121943-f6506928b72e
-  clients    github.com/intel-secl/clients                v3.5.0
-  common     github.com/intel-secl/common                 v3.5.0
+| Name        | Repo URL                    | Minimum Version Required  |
+| ----------- | --------------------------- | :-----------------------  |
+| uuid        | github.com/google/uuid      | v1.1.2                    |
+| cpuid       | github.com/klauspost/cpuid  | v1.2.1                    |
+| handlers    | github.com/gorilla/handlers | v1.4.0                    |
+| mux         | github.com/gorilla/mux      | v1.7.4                    |
+| errors      | github.com/pkg/errors       | v0.9.1                    |
+| logrus      | github.com/sirupsen/logrus  | v1.4.0                    |
+| testify     | github.com/stretchr/testify | v1.3.0                    |
+| jwt-go      | github.com/dgrijalva/jwt-go | v3.2.1                    |
+| testify     | github.com/stretchr/testify | v1.5.1                    |
+| yaml.v2     | gopkg.in/yaml.v2            | v2.4.0                    |
+| yaml.v3     | gopkg.in/yaml.v2            | v3.0.0                    |
+| common      | github.com/intel-secl/common| v3.5.0                    |
+| clients     | github.com/intel-secl/client| v3.5.0                    |
 
 
 *Note: All dependencies are listed in go.mod*
-
-Links
-=====
-
-<https://01.org/intel-secl/>

@@ -17,7 +17,7 @@ import (
 )
 
 // GetTCBStatus Fetches TCB status from SCS using QEID and PCEID.
-func GetTCBStatus(qeId, pceId string) (string, error) {
+func GetTCBStatus(qeID, pceID string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
 
@@ -39,8 +39,8 @@ func GetTCBStatus(qeId, pceId string) (string, error) {
 
 	// Add qeid and pceid query parameter for fetching tcb status
 	q := request.URL.Query()
-	q.Add("qeid", qeId)
-	q.Add("pceid", pceId)
+	q.Add("qeid", qeID)
+	q.Add("pceid", pceID)
 	request.URL.RawQuery = q.Encode()
 	request.Header.Set("Authorization", "Bearer "+conf.BearerToken)
 
