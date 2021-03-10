@@ -4,13 +4,6 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
-source agent.conf
-if [ $? -ne 0 ]; then
-        echo "${red} please set correct values in agent.conf ${reset}"
-        exit 1
-fi
-
-AAS_BASE_URL=https://$AAS_IP:8444/aas/v1
 CURL_OPTS="-s -k"
 CONTENT_TYPE="Content-Type: application/json"
 ACCEPT="Accept: application/jwt"
