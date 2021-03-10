@@ -27,7 +27,6 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -398,7 +397,11 @@ func (a *App) start() error {
 	if err != nil {
 		return err
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "start", "sgx_agent"}, os.Environ())
+	cmd := exec.Command(systemctl, "start", "sgx_agent")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) stop() error {
@@ -410,7 +413,11 @@ func (a *App) stop() error {
 	if err != nil {
 		return err
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "stop", "sgx_agent"}, os.Environ())
+	cmd := exec.Command(systemctl, "stop", "sgx_agent")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) status() error {
@@ -422,7 +429,11 @@ func (a *App) status() error {
 	if err != nil {
 		return err
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "status", "sgx_agent"}, os.Environ())
+	cmd := exec.Command(systemctl, "status", "sgx_agent")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) uninstall(purge bool) {
