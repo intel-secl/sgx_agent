@@ -37,7 +37,7 @@ cp /etc/hostname /proc/sys/kernel/hostname
 if [ ! -z "$SETUP_TASK" ]; then
   IFS=',' read -ra ADDR <<< "$SETUP_TASK"
   for task in "${ADDR[@]}"; do
-    if [ "$task" == "update_service_config" ]; then
+    if [ "$task" == "update-service-config" ]; then
         sgx_agent setup $task
         if [ $? -ne 0 ]; then
           exit 1

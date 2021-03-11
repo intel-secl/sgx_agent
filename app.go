@@ -73,7 +73,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                              Optional env variables:")
 	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    update_service_config    Updates Service Configuration")
+	fmt.Fprintln(w, "    update-service-config    Updates Service Configuration")
 	fmt.Fprintln(w, "                             Required env variables:")
 	fmt.Fprintln(w, "                                 - SCS_BASE_URL                                     : SCS Base URL")
 	fmt.Fprintln(w, "                                 - SGX_AGENT_LOGLEVEL                               : SGX_AGENT Log Level")
@@ -244,7 +244,7 @@ func (a *App) Run(args []string) error {
 			os.Exit(1)
 		}
 		if args[2] != "download_ca_cert" &&
-			args[2] != "update_service_config" &&
+			args[2] != "update-service-config" &&
 			args[2] != "all" {
 			a.printUsage()
 			return errors.New("No such setup task")
@@ -506,7 +506,7 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_ca_cert":
 		return nil
 
-	case "update_service_config":
+	case "update-service-config":
 		return nil
 
 	case "all":
