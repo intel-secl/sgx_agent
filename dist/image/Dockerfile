@@ -22,8 +22,7 @@ RUN yum-config-manager --add-repo file://$PWD/sgx_rpm_local_repo && \
 
 RUN rpm -ivh libsgx-ra-uefi-1.10.100.4-1.el8.x86_64.rpm
 
-RUN useradd -u 1001 --comment "SGX Agent Service" --home /opt/sgx_agent  --shell /bin/false sgx_agent
 COPY out/sgx_agent /usr/bin/sgx_agent
 COPY dist/image/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN touch /.container-env && chmod +x /entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
