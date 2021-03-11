@@ -40,6 +40,10 @@ func openLogFiles() (logFile, httpLogFile, secLogFile *os.File, err error) {
 		return nil, nil, nil, err
 	}
 
+	if _, err := os.Stat("/.container-env"); err == nil {
+		return logFile, httpLogFile, secLogFile, nil
+	}
+
 	agentUser, err := user.Lookup(constants.SGXAgentUserName)
 	if err != nil {
 		log.Errorf("Could not find sgx_agent user '%s'", constants.SGXAgentUserName)

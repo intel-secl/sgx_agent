@@ -289,6 +289,10 @@ func (a *App) Run(args []string) error {
 			return err
 		}
 
+		if _, err := os.Stat("/.container-env"); err == nil {
+			return nil
+		}
+
 		sgxAgentUser, err := user.Lookup(constants.SGXAgentUserName)
 		if err != nil {
 			return errors.Wrapf(err, "Could not find user '%s'", constants.SGXAgentUserName)
