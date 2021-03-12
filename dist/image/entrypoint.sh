@@ -16,7 +16,6 @@ if [ ! -f $CONFIG_PATH/.setup_done ]; then
       echo "Cannot create directory: $directory"
       exit 1
     fi
-    chown -R $COMPONENT_NAME:$COMPONENT_NAME $directory
     chmod 700 $directory
     chmod g+s $directory
   done
