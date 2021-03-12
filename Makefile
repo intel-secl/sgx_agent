@@ -30,6 +30,11 @@ else
 endif
 	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
+test:
+	GOSUMDB=off GOPROXY=direct go  test ./... -coverprofile cover.out
+	go tool cover -func cover.out
+	go tool cover -html=cover.out -o cover.html
+
 oci-archive: docker
 	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 

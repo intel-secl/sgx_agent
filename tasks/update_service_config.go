@@ -28,7 +28,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 	log.Trace("tasks/update_service_config:Run() Entering")
 	defer log.Trace("tasks/update_service_config:Run() Leaving")
 
-	fmt.Fprintln(u.ConsoleWriter, "Running update-service-config...")
+	fmt.Fprintln(u.ConsoleWriter, "Running update_service_config...")
 
 	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
 	if err == nil && sgxHVSBaseURL != "" {
