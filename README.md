@@ -27,6 +27,7 @@ Software requirements
 
 -   git
 -   makeself
+-   docker
 -   Go 1.14.1 or newer
 
 Step By Step Build Instructions
@@ -38,7 +39,7 @@ Install required shell commands
 ### Install tools from `dnf`
 
 ``` {.shell}
-sudo dnf install -y git wget makeself
+sudo dnf install -y git wget makeself docker
 ```
 
 ### Install `go 1.14.1` or newer
@@ -96,15 +97,12 @@ cd builds/skc-tools/sgx_agent/build_scripts
 | ----------- | --------------------------- | :-----------------------  |
 | uuid        | github.com/google/uuid      | v1.1.2                    |
 | cpuid       | github.com/klauspost/cpuid  | v1.2.1                    |
-| handlers    | github.com/gorilla/handlers | v1.4.0                    |
-| mux         | github.com/gorilla/mux      | v1.7.4                    |
 | errors      | github.com/pkg/errors       | v0.9.1                    |
 | logrus      | github.com/sirupsen/logrus  | v1.4.0                    |
 | testify     | github.com/stretchr/testify | v1.3.0                    |
 | jwt-go      | github.com/dgrijalva/jwt-go | v3.2.1                    |
-| testify     | github.com/stretchr/testify | v1.5.1                    |
+| testify     | github.com/stretchr/testify | v1.3.0                    |
 | yaml.v2     | gopkg.in/yaml.v2            | v2.4.0                    |
-| yaml.v3     | gopkg.in/yaml.v2            | v3.0.0                    |
 | common      | github.com/intel-secl/common| v3.5.0                    |
 | clients     | github.com/intel-secl/client| v3.5.0                    |
 
