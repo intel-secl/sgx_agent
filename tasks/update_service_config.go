@@ -13,6 +13,7 @@ import (
 	"intel/isecl/sgx_agent/v3/config"
 	"intel/isecl/sgx_agent/v3/constants"
 	"io"
+	"net/url"
 )
 
 var log = clog.GetDefaultLogger()
@@ -32,16 +33,28 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
 	if err == nil && sgxHVSBaseURL != "" {
-		u.Config.SGXHVSBaseURL = sgxHVSBaseURL
+		if _, err = url.Parse(sgxHVSBaseURL); err != nil {
+			return errors.Wrap(err, "SaveConfiguration() SHVS_BASE_URL provided is invalid")
+		} else {
+			u.Config.SGXHVSBaseURL = sgxHVSBaseURL
+		}
 	} else if u.Config.SGXHVSBaseURL == "" {
-		log.Info("SHVS_BASE_URL is not defined in environment. ")
+		log.Error("SHVS_BASE_URL is not defined in environment")
+		return errors.Wrap(errors.New("SHVS_BASE_URL is not defined in environment"),
+			"SaveConfiguration() ENV variable not found")
 	}
 
 	scsBaseURL, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
 	if err == nil && scsBaseURL != "" {
-		u.Config.ScsBaseURL = scsBaseURL
+		if _, err = url.Parse(scsBaseURL); err != nil {
+			return errors.Wrap(err, "SaveConfiguration() SCS_BASE_URL provided is invalid")
+		} else {
+			u.Config.ScsBaseURL = scsBaseURL
+		}
 	} else if u.Config.ScsBaseURL == "" {
-		log.Error("SCS_BASE_URL  is not defined in environment")
+		log.Error("SCS_BASE_URL is not defined in environment")
+		return errors.Wrap(errors.New("SCS_BASE_URL is not defined in environment"),
+			"SaveConfiguration() ENV variable not found")
 	}
 
 	bearerToken, err := c.GetenvString("BEARER_TOKEN", "BEARER TOKEN")
@@ -49,7 +62,8 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.BearerToken = bearerToken
 	} else if u.Config.BearerToken == "" {
 		log.Error("BEARER_TOKEN is not defined in environment")
-		return errors.Wrap(errors.New("BEARER_TOKEN is not defined in environment"), "SaveConfiguration() ENV variable not found")
+		return errors.Wrap(errors.New("BEARER_TOKEN is not defined in environment"),
+			"SaveConfiguration() ENV variable not found")
 	}
 
 	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
@@ -108,7 +122,6 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.LogMaxLength = logMaxLen
 	}
 
-	u.Config.LogEnableStdout = false
 	logEnableStdout, err := c.GetenvString("SGX_AGENT_ENABLE_CONSOLE_LOG", "SGX Agent Enable standard output")
 	if err != nil || logEnableStdout == "" {
 		u.Config.LogEnableStdout = false

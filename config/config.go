@@ -7,6 +7,7 @@ package config
 import (
 	"errors"
 	"gopkg.in/yaml.v2"
+	"net/url"
 	"os"
 	"path"
 
@@ -20,7 +21,7 @@ import (
 
 var slog = commLog.GetSecurityLogger()
 
-// Configuration is the global configuration struct that is marshalled/unmarshaled to a persisted yaml file
+// Configuration is the global configuration struct that is marshalled/unmarshalled to a persisted yaml file
 // Probably should embed a config generic struct
 type Configuration struct {
 	configFile       string
@@ -51,42 +52,35 @@ func Global() *Configuration {
 	return global
 }
 
-func (conf *Configuration) SaveConfiguration(c setup.Context) error {
+func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) error {
 	log.Trace("config/config:SaveConfiguration() Entering")
 	defer log.Trace("config/config:SaveConfiguration() Leaving")
 
-	var err error = nil
+	// target config changes only in scope for the setup task
+	if taskName == "all" || taskName == "download_ca_cert" || taskName == "download_cert" {
+		tlsCertDigest, err := c.GetenvString("CMS_TLS_CERT_SHA384", "TLS certificate digest")
+		if err == nil && tlsCertDigest != "" {
+			conf.CmsTLSCertDigest = tlsCertDigest
+		} else if conf.CmsTLSCertDigest == "" {
+			log.Error("CMS_TLS_CERT_SHA384 is not defined in environment")
+			return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "SaveConfiguration() ENV variable not found")
+		}
 
-	tlsCertDigest, err := c.GetenvString(constants.CmsTLSCertDigestEnv, "TLS certificate digest")
-	if err == nil && tlsCertDigest != "" {
-		conf.CmsTLSCertDigest = tlsCertDigest
-	} else if conf.CmsTLSCertDigest == "" {
-		commLog.GetDefaultLogger().Error("CMS_TLS_CERT_SHA384 is not defined in environment")
-		return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
-	cmsBaseURL, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
-	if err == nil && cmsBaseURL != "" {
-		conf.CMSBaseURL = cmsBaseURL
-	} else if conf.CMSBaseURL == "" {
-		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
-	logLevel, err := c.GetenvString("SGX_AGENT_LOGLEVEL", "SGX_AGENT Log Level")
-	if err != nil {
-		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SGXAgentLogLevel)
-		conf.LogLevel = log.InfoLevel
-	} else {
-		llp, err := log.ParseLevel(logLevel)
-		if err != nil {
-			slog.Info("config/config:SaveConfiguration() Invalid log level specified in env, using default log level: Info")
-			conf.LogLevel = log.InfoLevel
-		} else {
-			conf.LogLevel = llp
-			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
+		cmsBaseURL, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
+		if err == nil && cmsBaseURL != "" {
+			if _, err = url.Parse(cmsBaseURL); err != nil {
+				log.Error("CMS_BASE_URL provided is invalid")
+				return errorLog.Wrap(err, "SaveConfiguration() CMS_BASE_URL provided is invalid")
+			} else {
+				conf.CMSBaseURL = cmsBaseURL
+			}
+		} else if conf.CMSBaseURL == "" {
+			log.Error("CMS_BASE_URL is not defined in environment")
+			return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"),
+				"SaveConfiguration() ENV variable not found")
 		}
 	}
+
 	return conf.Save()
 }
 

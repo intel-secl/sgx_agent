@@ -253,8 +253,10 @@ func (a *App) Run(args []string) error {
 		if validErr != nil {
 			return errors.Wrap(validErr, "app:Run() Invalid setup task arguments")
 		}
+
+		taskName := args[2]
 		a.Config = config.Global()
-		err := a.Config.SaveConfiguration(context)
+		err := a.Config.SaveConfiguration(taskName, context)
 		if err != nil {
 			fmt.Println("Error saving configuration: " + err.Error())
 			os.Exit(1)
