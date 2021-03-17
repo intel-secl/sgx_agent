@@ -55,7 +55,7 @@ type PlatformData struct {
 }
 
 var (
-	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", "/opt/pckData"}
+	pckIDRetrievalInfo = []string{"PCKIDRetrievalTool", "-f", constants.PCKDataFile}
 )
 
 type SCSPushResponse struct {
@@ -129,10 +129,10 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 			}
 		}
 
-		// Run PCKIDRetrivalInfo. Output is written to /opt/pckData
+		// Run PCKIDRetrievalInfo. Output is written to /opt/pckData
 		err = runPCKIDRetrivalInfo()
 		if err != nil {
-			log.Error("Unable to retrive PCK Details using tool. ")
+			log.Error("Unable to retrieve PCK Details using tool. ")
 			return nil, nil, err
 		}
 
@@ -294,7 +294,7 @@ func runPCKIDRetrivalInfo() error {
 func isPCKDataCached() bool {
 	log.Debug("Checking if PCK Data was cached... ")
 
-	if _, err := os.Stat("/opt/pckData"); err == nil {
+	if _, err := os.Stat(constants.PCKDataFile); err == nil {
 		log.Debug("PCK Data is available in cache.")
 		return true
 	}
@@ -306,7 +306,7 @@ func isPCKDataCached() bool {
 
 func writePCKData(fileContents string) error {
 	// path/to/whatever exists
-	err := ioutil.WriteFile("/opt/pckData", []byte(fileContents), 0644)
+	err := ioutil.WriteFile(constants.PCKDataFile, []byte(fileContents), 0644)
 	if err != nil {
 		log.Error("Could not write sgx platform values to pckData file")
 	}
@@ -319,10 +319,10 @@ func readPCKDetailsFromCache() (string, error) {
 	fileContents := ""
 
 	// Check if file exists in the directory then parse it and write the values in log file.
-	_, err := os.Stat("/opt/pckData")
+	_, err := os.Stat(constants.PCKDataFile)
 	if err == nil {
 		// path/to/whatever exists
-		dat, err := ioutil.ReadFile("/opt/pckData")
+		dat, err := ioutil.ReadFile(constants.PCKDataFile)
 		if err != nil {
 			log.Error("could not read sgx platform values from pckData file")
 		} else {

@@ -14,6 +14,7 @@ const (
 	SecurityLogFile           = LogDir + "sgx_agent-security.log"
 	HTTPLogFile               = LogDir + "http.log"
 	ConfigFile                = "config.yml"
+	PCKDataFile               = "/opt/pckData"
 	TrustedCAsStoreDir        = ConfigDir + "certs/trustedca/"
 	CmsTLSCertDigestEnv       = "CMS_TLS_CERT_SHA384"
 	SGXAgentLogLevel          = "SGX_AGENT_LOGLEVEL"
