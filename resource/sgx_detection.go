@@ -146,6 +146,15 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 			log.Debug("PCE ISVSVN: ", s[3])
 			log.Debug("QE_ID: ", s[4])
 
+			if !validateInputString(constants.EncPPIDKey, s[0]) ||
+				!validateInputString(constants.PceIDKey, s[1]) ||
+				!validateInputString(constants.CPUSvnKey, s[2]) ||
+				!validateInputString(constants.PceSvnKey, s[3]) ||
+				!validateInputString(constants.QeIDKey, s[4]) {
+				slog.Error("resource/sgx_detection: ExtractSGXPlatformValues() Input validation failed")
+				return nil, nil, errors.New("resource/sgx_detection: ExtractSGXPlatformValues() PCK data validation failed")
+			}
+
 			platformData.EncryptedPPID = s[0]
 			platformData.PceID = s[1]
 			platformData.CPUSvn = s[2]
@@ -163,7 +172,10 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 					platformData.Manifest = cachedManifest
 					// Append manifest to pckData. Manifest will be reused
 					// for subsequent reboot.
-					writePCKData(fileContents + "," + cachedManifest)
+					err := writePCKData(fileContents + "," + cachedManifest)
+					if err != nil {
+						return nil, nil, errors.Wrap(err, "resource/sgx_detection: ExtractSGXPlatformValues() Failed to write PCK data to the file")
+					}
 				}
 			}
 			// FIXME : Remove global var usage. Instead let the function return sgxPlatformData

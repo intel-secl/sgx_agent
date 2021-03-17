@@ -25,4 +25,9 @@ const (
 	DefaultWaitTime           = 5
 	DefaultRetryCount         = 5
 	DefaultSHVSUpdateInterval = 120
+	EncPPIDKey                = "encrypted_ppid"
+	CPUSvnKey                 = "cpu_svn"
+	PceSvnKey                 = "pce_svn"
+	PceIDKey                  = "pce_id"
+	QeIDKey                   = "qe_id"
 )
