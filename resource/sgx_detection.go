@@ -170,6 +170,12 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 				if len(cachedManifest) > 0 {
 					log.Debug("Using Manifest from cache.")
 					platformData.Manifest = cachedManifest
+
+					if !validateInputString(constants.ManifestKey, cachedManifest) {
+						slog.Error("resource/sgx_detection: ExtractSGXPlatformValues() Input validation failed for cached manifest")
+						return nil, nil, errors.New("resource/sgx_detection: ExtractSGXPlatformValues() Input validation failed for cached manifest")
+					}
+
 					// Append manifest to pckData. Manifest will be reused
 					// for subsequent reboot.
 					err := writePCKData(fileContents + "," + cachedManifest)

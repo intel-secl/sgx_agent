@@ -10,11 +10,12 @@ import (
 )
 
 var regExMap = map[string]*regexp.Regexp{
-	constants.EncPPIDKey: regexp.MustCompile(`^[0-9a-fA-F]{768}$`),
-	constants.CPUSvnKey:  regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
-	constants.PceSvnKey:  regexp.MustCompile(`^[0-9a-fA-F]{4}$`),
-	constants.PceIDKey:   regexp.MustCompile(`^[0-9a-fA-F]{4}$`),
-	constants.QeIDKey:    regexp.MustCompile(`^[0-9a-fA-F]{32}$`)}
+	constants.EncPPIDKey:  regexp.MustCompile(`^[0-9a-fA-F]{768}$`),
+	constants.CPUSvnKey:   regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
+	constants.PceSvnKey:   regexp.MustCompile(`^[0-9a-fA-F]{4}$`),
+	constants.PceIDKey:    regexp.MustCompile(`^[0-9a-fA-F]{4}$`),
+	constants.QeIDKey:     regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
+	constants.ManifestKey: regexp.MustCompile(`^[a-fA-F0-9]+$`)}
 
 func validateInputString(key, inString string) bool {
 	regEx := regExMap[key]

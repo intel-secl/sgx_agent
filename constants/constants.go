@@ -30,4 +30,5 @@ const (
 	PceSvnKey                 = "pce_svn"
 	PceIDKey                  = "pce_id"
 	QeIDKey                   = "qe_id"
+	ManifestKey               = "manifest"
 )
