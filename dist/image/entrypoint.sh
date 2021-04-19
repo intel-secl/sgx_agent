@@ -1,5 +1,9 @@
 #!/bin/bash
 
+source /etc/secret-volume/secrets.txt
+export CSP_ADMIN_USERNAME
+export CSP_ADMIN_PASSWORD
+
 COMPONENT_NAME=sgx_agent
 PRODUCT_HOME=/opt/$COMPONENT_NAME
 BIN_PATH=$PRODUCT_HOME/bin
@@ -49,9 +53,5 @@ if [ ! -z "$SETUP_TASK" ]; then
     fi
   done
 fi
-
-unset BEARER_TOKEN
-unset CSP_ADMIN_USERNAME
-unset CSP_ADMIN_PASSWORD
 
 sgx_agent run
