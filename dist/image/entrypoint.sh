@@ -1,8 +1,8 @@
 #!/bin/bash
 
 source /etc/secret-volume/secrets.txt
-export CSP_ADMIN_USERNAME
-export CSP_ADMIN_PASSWORD
+export CCC_ADMIN_USERNAME
+export CCC_ADMIN_PASSWORD
 
 COMPONENT_NAME=sgx_agent
 PRODUCT_HOME=/opt/$COMPONENT_NAME
