@@ -38,20 +38,24 @@ fi
 cp /etc/hostname /proc/sys/kernel/hostname
 
 if [ ! -z "$SETUP_TASK" ]; then
+  cp $CONFIG_PATH/config.yml /tmp/config.yml
   IFS=',' read -ra ADDR <<< "$SETUP_TASK"
   for task in "${ADDR[@]}"; do
     if [ "$task" == "update_service_config" ]; then
         sgx_agent setup $task
         if [ $? -ne 0 ]; then
+          cp /tmp/config.yml $CONFIG_PATH/config.yml
           exit 1
         fi
         continue 1
     fi
     sgx_agent setup $task --force
     if [ $? -ne 0 ]; then
+      cp /tmp/config.yml $CONFIG_PATH/config.yml
       exit 1
     fi
   done
+  rm -rf /tmp/config.yml
 fi
 
 sgx_agent run
