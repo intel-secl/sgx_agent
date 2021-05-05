@@ -73,7 +73,7 @@ chmod 700 $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sgx_agent:sgx_agent $LOG_PATH
-chmod 640 $LOG_PATH
+chmod 740 $LOG_PATH
 
 # Install systemd script
 cp sgx_agent.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/sgx_agent.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
