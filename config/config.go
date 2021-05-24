@@ -12,9 +12,9 @@ import (
 	"path"
 
 	errorLog "github.com/pkg/errors"
-	commLog "intel/isecl/lib/common/v3/log"
-	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/sgx_agent/v3/constants"
+	commLog "intel/isecl/lib/common/v4/log"
+	"intel/isecl/lib/common/v4/setup"
+	"intel/isecl/sgx_agent/v4/constants"
 
 	log "github.com/sirupsen/logrus"
 )
