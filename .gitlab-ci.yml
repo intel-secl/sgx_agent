@@ -56,13 +56,12 @@ Stylechecker:
   stage: scan
   only:
     - merge_requests
-  image: gta-devel
+  image: golang:1.14
   tags:
-    - gta
+    - k8s
   script:
-    - gofmt -l .
     - |
-      if [ "$(gofmt -l . | wc -l)"  -gt 0 ]; then
+      if [ "$(GOPROXY=direct GOSUMDB=off gofmt -l . | wc -l)"  -gt 0 ]; then
              exit 1
       fi
 
