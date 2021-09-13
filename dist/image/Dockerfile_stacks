@@ -1,0 +1,26 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+FROM centos:8
+
+# Set env variables
+ENV SGX_AGENT_BIN dist/image/bin
+
+COPY dist/image/create_roles.sh /create_roles.sh
+RUN chmod +x /create_roles.sh
+COPY $SGX_AGENT_BIN/libdcap_quoteprov.so.1 $SGX_AGENT_BIN/pck_id_retrieval_tool_enclave.signed.so /usr/sbin/
+COPY $SGX_AGENT_BIN/PCKIDRetrievalTool /usr/sbin/
+COPY $SGX_AGENT_BIN/intelsgxstack.repo $PWD
+
+RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+RUN dnf install -y yum-utils dmidecode
+
+RUN yum-config-manager --add-repo file://${PWD}/intelsgxstack.repo
+RUN dnf install -y --nogpgcheck libsgx-dcap-ql
+RUN dnf install -y libsgx-ra-uefi
+COPY $SGX_AGENT_BIN/psw /opt/intel
+
+COPY out/sgx_agent /usr/bin/sgx_agent
+COPY dist/image/entrypoint.sh /entrypoint.sh
+RUN touch /.container-env && chmod +x /entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]

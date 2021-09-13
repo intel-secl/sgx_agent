@@ -45,7 +45,18 @@ test:
 	go tool cover -func cover.out
 	go tool cover -html=cover.out -o cover.html
 
+docker_stacks: sgx_agent
+ifeq ($(PROXY_EXISTS),1)
+	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile_stacks -t isecl/sgx-agent:$(VERSION) .
+else
+	docker build -f dist/image/Dockerfile_stacks -t isecl/sgx-agent:$(VERSION) .
+endif
+	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+
 oci-archive: docker
+	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+
+oci-archive_stacks: docker_stacks
 	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 clean:
