@@ -1,8 +1,10 @@
 #!/bin/bash
 
-source /etc/secret-volume/secrets.txt
-export CCC_ADMIN_USERNAME
-export CCC_ADMIN_PASSWORD
+SECRETS=/etc/secrets
+IFS=$'\r\n' GLOBIGNORE='*' command eval 'secretFiles=($(ls  $SECRETS))'
+for i in "${secretFiles[@]}"; do
+    export $i=$(cat $SECRETS/$i)
+done
 
 COMPONENT_NAME=sgx_agent
 PRODUCT_HOME=/opt/$COMPONENT_NAME
@@ -57,5 +59,9 @@ if [ ! -z "$SETUP_TASK" ]; then
   done
   rm -rf /tmp/config.yml
 fi
+
+for i in "${secretFiles[@]}"; do
+    unset $i
+done
 
 sgx_agent run
