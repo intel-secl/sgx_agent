@@ -34,9 +34,9 @@ sgx_agent:
 
 docker: sgx_agent
 ifeq ($(PROXY_EXISTS),1)
-	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
+	docker build ${DOCKER_PROXY_FLAGS} --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
 else
-	docker build -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
+	docker build -f dist/image/Dockerfile --label org.label-schema.build-date=$(BUILDDATE) -t isecl/sgx-agent:$(VERSION) .
 endif
 	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 

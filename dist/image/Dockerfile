@@ -3,6 +3,11 @@
 
 FROM centos:8
 
+LABEL org.label-schema.name="SGX Agent" \
+      org.label-schema.vendor="Intel Corporation" \
+      org.label-schema.license="BSD-3-Clause" \
+      org.label-schema.url="https://github.com/intel-secl/intel-secl"
+      
 # Set env variables
 ENV SGX_AGENT_BIN dist/image/bin
 
