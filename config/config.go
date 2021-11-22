@@ -12,14 +12,11 @@ import (
 	"path"
 
 	errorLog "github.com/pkg/errors"
-	commLog "intel/isecl/lib/common/v4/log"
 	"intel/isecl/lib/common/v4/setup"
 	"intel/isecl/sgx_agent/v4/constants"
 
 	log "github.com/sirupsen/logrus"
 )
-
-var slog = commLog.GetSecurityLogger()
 
 // Configuration is the global configuration struct that is marshalled/unmarshalled to a persisted yaml file
 // Probably should embed a config generic struct
