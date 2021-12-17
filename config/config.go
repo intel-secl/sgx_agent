@@ -19,8 +19,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var slog = commLog.GetSecurityLogger()
-
 // Configuration is the global configuration struct that is marshalled/unmarshalled to a persisted yaml file
 // Probably should embed a config generic struct
 type Configuration struct {
