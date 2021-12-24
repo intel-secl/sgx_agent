@@ -84,17 +84,18 @@ cd builds/skc-tools/sgx_agent/build_scripts
 
 ### Direct dependencies
 
-Name    | Repo URL                     | Minimum Version Required
-------- | ---------------------------- | :-----------------------
-uuid    | github.com/google/uuid       | v1.1.2
-cpuid   | github.com/klauspost/cpuid   | v1.2.1
-errors  | github.com/pkg/errors        | v0.9.1
-logrus  | github.com/sirupsen/logrus   | v1.4.0
-testify | github.com/stretchr/testify  | v1.3.0
-jwt-go  | github.com/dgrijalva/jwt-go  | v3.2.1
-testify | github.com/stretchr/testify  | v1.3.0
-yaml.v2 | gopkg.in/yaml.v2             | v2.4.0
-common  | github.com/intel-secl/common | v3.5.0
-clients | github.com/intel-secl/client | v3.5.0
+| Name        | Repo URL                    | Minimum Version Required  |
+| ----------- | --------------------------- | :-----------------------  |
+| uuid        | github.com/google/uuid      | v1.1.2                    |
+| cpuid       | github.com/klauspost/cpuid  | v1.2.1                    |
+| errors      | github.com/pkg/errors       | v0.9.1                    |
+| logrus      | github.com/sirupsen/logrus  | v1.4.0                    |
+| testify     | github.com/stretchr/testify | v1.3.0                    |
+| jwt-go      | github.com/dgrijalva/jwt-go | v3.2.1                    |
+| testify     | github.com/stretchr/testify | v1.3.0                    |
+| yaml.v2     | gopkg.in/yaml.v2            | v2.4.0                    |
+| common      | github.com/intel-secl/common| v4.1.0                    |
+| clients     | github.com/intel-secl/client| v4.1.0                    |
 
-_Note: All dependencies are listed in go.mod_
+
+*Note: All dependencies are listed in go.mod*

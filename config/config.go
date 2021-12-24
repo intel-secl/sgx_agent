@@ -12,7 +12,6 @@ import (
 	"path"
 
 	errorLog "github.com/pkg/errors"
-	commLog "intel/isecl/lib/common/v5/log"
 	"intel/isecl/lib/common/v5/setup"
 	"intel/isecl/sgx_agent/v5/constants"
 
