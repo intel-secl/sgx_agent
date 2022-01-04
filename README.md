@@ -67,7 +67,7 @@ Build SGX Agent
 
 ``` {.shell}
 git clone https://github.com/intel-secl/utils.git && cd utils
-git checkout v4.1.0
+git checkout v4.2.0
 cd builds/skc-tools/sgx_agent/build_scripts
 
 - To build SGX Agent,
@@ -103,8 +103,8 @@ cd builds/skc-tools/sgx_agent/build_scripts
 | jwt-go      | github.com/dgrijalva/jwt-go | v3.2.1                    |
 | testify     | github.com/stretchr/testify | v1.3.0                    |
 | yaml.v2     | gopkg.in/yaml.v2            | v2.4.0                    |
-| common      | github.com/intel-secl/common| v4.1.0                    |
-| clients     | github.com/intel-secl/client| v4.1.0                    |
+| common      | github.com/intel-secl/common| v4.2.0                    |
+| clients     | github.com/intel-secl/client| v4.2.0                    |
 
 
 *Note: All dependencies are listed in go.mod*
