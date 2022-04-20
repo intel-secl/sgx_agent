@@ -24,7 +24,7 @@ RUN apt-get install -y dmidecode wget gnupg curl ca-certificates openssl
 RUN echo $SGX_LIBS_REPO | tee /etc/apt/sources.list.d/intel-sgx.list
 RUN wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | apt-key add -
 RUN apt-get update -y
-RUN apt install -y libsgx-dcap-ql libsgx-ra-uefi
+RUN apt-get install -y libsgx-dcap-ql libsgx-ra-uefi
 RUN apt-get clean && apt-get autoclean
 
 COPY out/sgx_agent /usr/bin/sgx_agent
