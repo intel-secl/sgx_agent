@@ -4,7 +4,7 @@ VERSION := "v5.0.0"
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
-MONOREPO_GITURL := "https://gitlab.devtools.intel.com/sst/isecl/intel-secl.git"
+MONOREPO_GITURL := "https://github.com/intel-innersource/applications.security.isecl.intel-secl.git"
 MONOREPO_GITBRANCH := "v5.0/develop"
 
 ifeq ($(PROXY_EXISTS),1)
