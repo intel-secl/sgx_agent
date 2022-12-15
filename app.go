@@ -371,7 +371,7 @@ func (a *App) startAgent() error {
 	}
 	log.Debug("FLC is enabled.")
 
-	status, err := resource.PushSGXData(platformData, hardwareUUID)
+	status, err := resource.PushSGXData(nil, platformData, hardwareUUID)
 	if !status && err != nil {
 		log.WithError(err).Error("Unable to push platform data to SCS. Terminating...")
 		return err

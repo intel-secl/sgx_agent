@@ -6,12 +6,12 @@ package config
 
 import (
 	"errors"
-	"gopkg.in/yaml.v2"
 	"net/url"
 	"os"
 	"path"
 
 	errorLog "github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 	"intel/isecl/lib/common/v5/setup"
 	"intel/isecl/sgx_agent/v5/constants"
 
@@ -37,16 +37,16 @@ type Configuration struct {
 	SHVSUpdateInterval int
 }
 
-var global *Configuration
+var GlobalConfig *Configuration
 
 func Global() *Configuration {
 	log.Trace("config/config:Global() Entering")
 	defer log.Trace("config/config:Global() Leaving")
 
-	if global == nil {
-		global = Load(path.Join(constants.ConfigDir, constants.ConfigFile))
+	if GlobalConfig == nil {
+		GlobalConfig = Load(path.Join(constants.ConfigDir, constants.ConfigFile))
 	}
-	return global
+	return GlobalConfig
 }
 
 func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) error {

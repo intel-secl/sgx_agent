@@ -33,7 +33,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	sgxHVSBaseURL, err := c.GetenvString("SHVS_BASE_URL", "HVS Base URL")
 	if err == nil && sgxHVSBaseURL != "" {
-		if _, err = url.Parse(sgxHVSBaseURL); err != nil {
+		if _, err = url.ParseRequestURI(sgxHVSBaseURL); err != nil {
 			return errors.Wrap(err, "SaveConfiguration() SHVS_BASE_URL provided is invalid")
 		} else {
 			u.Config.SGXHVSBaseURL = sgxHVSBaseURL
@@ -44,7 +44,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	scsBaseURL, err := c.GetenvString("SCS_BASE_URL", "SCS Base URL")
 	if err == nil && scsBaseURL != "" {
-		if _, err = url.Parse(scsBaseURL); err != nil {
+		if _, err = url.ParseRequestURI(scsBaseURL); err != nil {
 			return errors.Wrap(err, "SaveConfiguration() SCS_BASE_URL provided is invalid")
 		} else {
 			u.Config.ScsBaseURL = scsBaseURL

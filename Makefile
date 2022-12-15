@@ -35,30 +35,36 @@ sgx_agent:
 
 docker: sgx_agent
 ifeq ($(PROXY_EXISTS),1)
-	docker build ${DOCKER_PROXY_FLAGS} --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t isecl/sgx-agent:$(VERSION) .
+	docker build ${DOCKER_PROXY_FLAGS} --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) .
 else
-	docker build -f dist/image/Dockerfile --label org.label-schema.build-date=$(BUILDDATE) -t isecl/sgx-agent:$(VERSION) .
+	docker build -f dist/image/Dockerfile --label org.label-schema.build-date=$(BUILDDATE) -t $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) .
 endif
-	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+	docker save $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 test:
-	GOSUMDB=off GOPROXY=direct go  test ./... -coverprofile cover.out
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go mod tidy
+	go test ./... -coverprofile cover.out
 	go tool cover -func cover.out
 	go tool cover -html=cover.out -o cover.html
 
 docker_stacks: sgx_agent
 ifeq ($(PROXY_EXISTS),1)
-	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile_stacks -t isecl/sgx-agent:$(VERSION) .
+	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile_stacks -t $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) .
 else
-	docker build -f dist/image/Dockerfile_stacks -t isecl/sgx-agent:$(VERSION) .
+	docker build -f dist/image/Dockerfile_stacks -t $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) .
 endif
-	docker save isecl/sgx-agent:$(VERSION) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+	docker save $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 oci-archive: docker
 	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 oci-archive_stacks: docker_stacks
 	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+
+sgx_agent-docker-push: docker
+	docker tag $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)
+	docker push $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)
+	docker push $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT)
 
 clean:
 	rm -f cover.*
