@@ -8,11 +8,11 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/yaml.v3 v3.0.1
-	intel/isecl/lib/clients/v5 v5.0.0
-	intel/isecl/lib/common/v5 v5.0.0
+	intel/isecl/lib/clients/v5 v5.1.0
+	intel/isecl/lib/common/v5 v5.1.0
 )
 
 replace (
-	intel/isecl/lib/clients/v5 => github.com/intel-innersource/libraries.security.isecl.clients/v5 v5.0/develop-innersource
-	intel/isecl/lib/common/v5 => github.com/intel-innersource/libraries.security.isecl.common/v5 v5.0/develop
+	intel/isecl/lib/clients/v5 => github.com/intel-innersource/libraries.security.isecl.clients/v5 v5.1/develop
+	intel/isecl/lib/common/v5 => github.com/intel-innersource/libraries.security.isecl.common/v5 v5.1/develop
 )

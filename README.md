@@ -52,7 +52,7 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 - Run scripts to build the SGX Agent
 
 ```{.shell}
-repo init -u  https://github.com/intel-secl/build-manifest.git -b refs/tags/v5.0.0 -m manifest/skc.xml 
+repo init -u  https://github.com/intel-secl/build-manifest.git -b refs/tags/v5.1.0 -m manifest/skc.xml 
 repo sync 
 make sgx_agent_k8s 
 - Sgx agent container image will be generated. Use: `docker images` to list 
@@ -89,8 +89,8 @@ make sgx_agent_k8s
 | jwt-go      | github.com/dgrijalva/jwt-go | v3.2.1                    |
 | testify     | github.com/stretchr/testify | v1.6.1                    |
 | yaml.v3     | gopkg.in/yaml.v3            | v3.0.1                    |
-| common      | github.com/intel-secl/common| v5.0.0                    |
-| clients     | github.com/intel-secl/client| v5.0.0                    |
+| common      | github.com/intel-secl/common| v5.1.0                    |
+| clients     | github.com/intel-secl/client| v5.1.0                    |
 
 
 *Note: All dependencies are listed in go.mod*
