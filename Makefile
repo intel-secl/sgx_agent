@@ -56,10 +56,10 @@ endif
 	docker save $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) > out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 oci-archive: docker
-	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+	skopeo copy docker-daemon:$(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 oci-archive_stacks: docker_stacks
-	skopeo copy docker-daemon:isecl/sgx-agent:$(VERSION) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
+	skopeo copy docker-daemon:$(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) oci-archive:out/sgx-agent-$(VERSION)-$(GITCOMMIT).tar
 
 sgx_agent-docker-push: docker
 	docker tag $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)-$(GITCOMMIT) $(DOCKER_REGISTRY)isecl/sgx_agent:$(VERSION)
