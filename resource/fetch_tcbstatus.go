@@ -8,16 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v4"
-	"intel/isecl/sgx_agent/v4/config"
-	"intel/isecl/sgx_agent/v4/constants"
-	"intel/isecl/sgx_agent/v4/utils"
+	"intel/isecl/lib/clients/v5"
+	"intel/isecl/sgx_agent/v5/config"
+	"intel/isecl/sgx_agent/v5/constants"
+	"intel/isecl/sgx_agent/v5/utils"
 	"io/ioutil"
 	"net/http"
 )
 
 // GetTCBStatus Fetches TCB status from SCS using QEID and PCEID.
-func GetTCBStatus(qeID, pceID string) (string, error) {
+func GetTCBStatus(httpClient HttpClient, qeID, pceID string) (string, error) {
 	log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Entering")
 	defer log.Trace("resource/fetch_tcbstatus:GetTCBStatus() Leaving")
 
@@ -61,8 +61,10 @@ func GetTCBStatus(qeID, pceID string) (string, error) {
 
 	log.Debug("Client Created.")
 
-	httpClient := &http.Client{
-		Transport: client.Transport,
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Transport: client.Transport,
+		}
 	}
 
 	response, err := httpClient.Do(request)

@@ -10,19 +10,20 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/klauspost/cpuid"
-	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v4"
-	clog "intel/isecl/lib/common/v4/log"
-	"intel/isecl/sgx_agent/v4/config"
-	"intel/isecl/sgx_agent/v4/constants"
-	"intel/isecl/sgx_agent/v4/utils"
+	"intel/isecl/lib/clients/v5"
+	clog "intel/isecl/lib/common/v5/log"
+	"intel/isecl/sgx_agent/v5/config"
+	"intel/isecl/sgx_agent/v5/constants"
+	"intel/isecl/sgx_agent/v5/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/klauspost/cpuid"
+	"github.com/pkg/errors"
 )
 
 // MSR.IA32_Feature_Control register tells availability of SGX
@@ -43,6 +44,17 @@ type SGXDiscoveryData struct {
 	sgxInstructionSet   int
 	maxEnclaveSizeNot64 int64
 	maxEnclaveSize64    int64
+}
+
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+type ClientMock struct {
+	FakeStatusCode          int
+	RetryCount              int
+	UnmarshallResponseError bool
+	ResponseBodyError       bool
 }
 
 type PlatformData struct {
@@ -77,7 +89,7 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 	}
 	log.Info("SGX Extensions are enabled, hence proceeding further")
 	sgxData.SgxSupported = sgxExtensionsEnabled
-	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled()
+	sgxEnabled, flcEnabled, err := isSGXAndFLCEnabled(FeatureControlRegister, MSRDevice)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Error while checking SGX and FLC are enabled in MSR")
 	}
@@ -200,9 +212,9 @@ func ExtractSGXPlatformValues() (*SGXDiscoveryData, *PlatformData, error) {
 }
 
 // ReadMSR is a utility function that reads an 64 bit value from /dev/cpu/0/msr at offset 'offset'
-func ReadMSR(offset int64) (uint64, error) {
+func ReadMSR(offset int64, path string) (uint64, error) {
 
-	msr, err := os.Open(MSRDevice)
+	msr, err := os.Open(path)
 	if err != nil {
 		return 0, errors.Wrapf(err, "sgx_detection:ReadMSR(): Error opening msr")
 	}
@@ -228,10 +240,10 @@ func ReadMSR(offset int64) (uint64, error) {
 	return binary.LittleEndian.Uint64(results), nil
 }
 
-func isSGXAndFLCEnabled() (sgxEnabled, flcEnabled bool, err error) {
+func isSGXAndFLCEnabled(featureControlRegister int64, msrDevicePath string) (sgxEnabled, flcEnabled bool, err error) {
 	sgxEnabled = false
 	flcEnabled = false
-	sgxBits, err := ReadMSR(FeatureControlRegister)
+	sgxBits, err := ReadMSR(featureControlRegister, msrDevicePath)
 	if err != nil {
 		return sgxEnabled, flcEnabled, errors.Wrap(err, "Error while reading MSR")
 	}
@@ -369,12 +381,15 @@ func convertToMB(b uint64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func PushSGXData(pdata *PlatformData, hardwareUUID string) (bool, error) {
+func PushSGXData(client HttpClient, pdata *PlatformData, hardwareUUID string) (bool, error) {
 	log.Trace("resource/sgx_detection.go: PushSGXData() Entering")
 	defer log.Trace("resource/sgx_detection.go: PushSGXData() Leaving")
-	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-	if err != nil {
-		return false, errors.Wrap(err, "PushSGXData: Error in getting client object")
+	var err error
+	if client == nil {
+		client, err = clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+		if err != nil {
+			return false, errors.Wrap(err, "PushSGXData: Error in getting client object")
+		}
 	}
 
 	conf := config.Global()

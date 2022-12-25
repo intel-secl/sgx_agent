@@ -7,15 +7,15 @@ package resource
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v4"
-	"intel/isecl/sgx_agent/v4/config"
-	"intel/isecl/sgx_agent/v4/constants"
-	"intel/isecl/sgx_agent/v4/utils"
+	"intel/isecl/lib/clients/v5"
+	"intel/isecl/sgx_agent/v5/config"
+	"intel/isecl/sgx_agent/v5/constants"
+	"intel/isecl/sgx_agent/v5/utils"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
+	"github.com/pkg/errors"
 )
 
 // UpdateSHVSPeriodically Updates SHVS periodically. If an error occurs,
@@ -23,13 +23,13 @@ import (
 func UpdateSHVSPeriodically(sgxDiscovery *SGXDiscoveryData, platformData *PlatformData, hardwareUUID string, period int) error {
 	// update SHVS as per configured timer.
 	for {
-		tcbStatus, err := GetTCBStatus(platformData.QeID, platformData.PceID)
+		tcbStatus, err := GetTCBStatus(nil, platformData.QeID, platformData.PceID)
 		if err != nil {
 			// Log error . But don't throw it.
 			log.WithError(err).Error("Unable to get TCB Status from SCS.")
 		} else {
 			tcbUptoDate, _ := strconv.ParseBool(tcbStatus)
-			err = PushSGXEnablementData(sgxDiscovery, hardwareUUID, tcbUptoDate)
+			err = PushSGXEnablementData(nil, sgxDiscovery, hardwareUUID, tcbUptoDate)
 			if err != nil {
 				// Log error . But don't throw it.
 				log.WithError(err).Error("Unable to update SHVS.")
@@ -55,7 +55,7 @@ type SGXHostInfo struct {
 }
 
 // PushSGXEnablementData updates SHVS With SGX Discovery Data and TCB Status.
-func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, hardwareUUID string, tcbStatus bool) error {
+func PushSGXEnablementData(httpClient HttpClient, sgxDiscovery *SGXDiscoveryData, hardwareUUID string, tcbStatus bool) error {
 	log.Trace("resource/update_shvs:PushHostSGXDiscovery Entering")
 	defer log.Trace("resource/update_shvs:PushHostSGXDiscovery Leaving")
 
@@ -107,8 +107,10 @@ func PushSGXEnablementData(sgxDiscovery *SGXDiscoveryData, hardwareUUID string, 
 		return errors.Wrap(err, "resource/update_shvs:UpdateHOSTSGXDiscovery() Error while creating http client")
 	}
 
-	httpClient := &http.Client{
-		Transport: client.Transport,
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Transport: client.Transport,
+		}
 	}
 
 	response, err := httpClient.Do(request)
