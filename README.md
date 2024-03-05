@@ -1,6 +1,6 @@
 # SGX Agent
 
-`SGX Agent` is primarily involved in SGX technology discovery and collection of SGX attributes on a SGX enabled platform (Single Socket/Multi socket).
+`SGX Agent` is primarily involved in SGX technology discovery and collection of SGX attributes on a SGX enabled platform (Single Socket/Multi socket). 
 
 ## Key features
 
